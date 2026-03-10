@@ -3,21 +3,49 @@ import { factCheck } from '@/lib/claude';
 import { searchSources } from '@/lib/feeds';
 import { queryGoogleFactCheck, googleClaimsToSources } from '@/lib/googleFactCheck';
 import { getCredibilityScore, getSourceName } from '@/lib/sources';
+import { createClient } from '@supabase/supabase-js';
 
-export const runtime = 'nodejs';
 export const maxDuration = 60;
 
 function sseEvent(event: string, data: unknown): string {
   return `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
 }
 
+function getSupabaseDirectClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !serviceKey || supabaseUrl.includes('placeholder') || supabaseUrl.includes('your-project')) {
+    return null;
+  }
+
+  return createClient(supabaseUrl, serviceKey);
+}
+
 export async function POST(request: NextRequest) {
-  const body = await request.json();
+  let body: { claim?: string; sourceUrl?: string };
+  try {
+    body = await request.json();
+  } catch {
+    return new Response(JSON.stringify({ error: 'Invalid JSON' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
   const { claim, sourceUrl } = body;
 
   if (!claim || typeof claim !== 'string' || claim.trim().length < 10) {
     return new Response(JSON.stringify({ error: 'Claim too short' }), {
       status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  // Check Anthropic API key before starting stream
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return new Response(JSON.stringify({ error: 'ANTHROPIC_API_KEY not configured' }), {
+      status: 500,
       headers: { 'Content-Type': 'application/json' },
     });
   }
@@ -35,8 +63,8 @@ export async function POST(request: NextRequest) {
 
         // Step 2: Search in parallel
         const [contextSources, googleResult] = await Promise.all([
-          searchSources(claim),
-          queryGoogleFactCheck(claim),
+          searchSources(claim).catch(() => []),
+          queryGoogleFactCheck(claim).catch(() => ({ claims: [] })),
         ]);
         const googleSources = googleClaimsToSources(googleResult.claims);
         const allSources = [...contextSources, ...googleSources];
@@ -65,16 +93,12 @@ export async function POST(request: NextRequest) {
 
         const result = await factCheck(claim, allSources);
 
-        // Step 6: Persist to Supabase (best-effort)
+        // Step 6: Persist to Supabase (best-effort, using direct client to avoid cookies() issue)
         let claimId: string | null = null;
         try {
-          const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-          const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+          const supabase = getSupabaseDirectClient();
 
-          if (supabaseUrl && serviceKey && !supabaseUrl.includes('placeholder') && !supabaseUrl.includes('your-project')) {
-            const { createServiceClient } = await import('@/lib/supabase/server');
-            const supabase = createServiceClient();
-
+          if (supabase) {
             const { data: claimData } = await supabase
               .from('claims')
               .insert({
@@ -141,8 +165,9 @@ export async function POST(request: NextRequest) {
         controller.close();
       } catch (error) {
         console.error('Stream verification error:', error);
+        const msg = error instanceof Error ? error.message : 'Error al verificar';
         controller.enqueue(encoder.encode(sseEvent('error', {
-          message: 'Error al verificar. Intenta de nuevo.',
+          message: `Error al verificar: ${msg.slice(0, 200)}`,
         })));
         controller.close();
       }

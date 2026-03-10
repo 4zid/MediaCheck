@@ -70,7 +70,8 @@ export function useVerification(): UseVerificationReturn {
       });
 
       if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
+        const errBody = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+        throw new Error(errBody.error || `HTTP ${res.status}`);
       }
 
       const reader = res.body?.getReader();

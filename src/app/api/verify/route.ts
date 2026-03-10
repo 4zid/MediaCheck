@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 import { factCheck } from '@/lib/claude';
 import { searchSources } from '@/lib/feeds';
 import { queryGoogleFactCheck, googleClaimsToSources } from '@/lib/googleFactCheck';
@@ -19,7 +20,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ cached: false });
     }
 
-    const supabase = createServiceClient();
+    const supabase = createClient(supabaseUrl, serviceKey);
 
     const { data: claims } = await supabase
       .from('claims')
