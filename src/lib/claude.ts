@@ -5,12 +5,17 @@ const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
-const SYSTEM_PROMPT = `Eres un fact-checker imparcial. Analiza el claim contra la evidencia proporcionada.
-Responde ÚNICAMENTE con JSON válido (sin markdown, sin texto extra). Estructura:
-{"verdict":"verified|partially_true|false|unverified|misleading","confidence":0-100,"summary":"resumen breve","analysis":"análisis de 2-3 párrafos","category":"politics|health|technology|economy|environment|social|science|entertainment|other","sources":[{"url":"","title":"","snippet":"","credibility_score":0-100,"supports_claim":true,"source_name":""}]}`;
+const SYSTEM_PROMPT = `Eres un fact-checker. Analiza el claim contra la evidencia.
+REGLAS ESTRICTAS:
+- Responde SOLO JSON válido, sin markdown, sin texto antes o después
+- "summary": máximo 2 oraciones cortas
+- "analysis": máximo 1 párrafo corto
+- "sources": máximo 3 fuentes, snippets de máximo 50 caracteres
+Estructura exacta:
+{"verdict":"verified|partially_true|false|unverified|misleading","confidence":0-100,"summary":"...","analysis":"...","category":"politics|health|technology|economy|environment|social|science|entertainment|other","sources":[{"url":"...","title":"...","snippet":"...","credibility_score":0-100,"supports_claim":true,"source_name":"..."}]}`;
 
 /**
- * Quick classification with Haiku — determines if claim needs deep analysis.
+ * Quick classification with Haiku.
  */
 export async function classifyWithHaiku(
   claim: string
@@ -45,21 +50,21 @@ export async function factCheck(
   claim: string,
   contextSources: { title: string; url: string; content: string }[] = []
 ): Promise<FactCheckResult & { category: string }> {
-  const compressedSources = contextSources.slice(0, 8).map((s, i) =>
-    `${i + 1}. [${s.title}](${s.url}): ${s.content.substring(0, 200)}`
+  const compressedSources = contextSources.slice(0, 5).map((s, i) =>
+    `${i + 1}. ${s.title} (${s.url})`
   ).join('\n');
 
   const sourcesContext = compressedSources
-    ? `\n\nEvidencia:\n${compressedSources}`
+    ? `\n\nFuentes:\n${compressedSources}`
     : '';
 
   const message = await client.messages.create({
     model: 'claude-sonnet-4-6',
-    max_tokens: 1200,
+    max_tokens: 1500,
     messages: [
       {
         role: 'user',
-        content: `Verifica este claim: "${claim.substring(0, 500)}"${sourcesContext}\n\nResponde SOLO con el JSON, sin markdown ni texto adicional.`,
+        content: `Verifica: "${claim.substring(0, 400)}"${sourcesContext}\n\nJSON solamente:`,
       },
     ],
     system: SYSTEM_PROMPT,
@@ -67,90 +72,124 @@ export async function factCheck(
 
   const text = message.content[0].type === 'text' ? message.content[0].text : '';
 
-  return parseClaudeJSON(text);
+  return repairAndParseJSON(text);
 }
 
 /**
- * Robustly parse JSON from Claude's response, handling:
- * - Markdown code blocks
- * - Trailing commas
- * - Truncated JSON (close open brackets/braces)
+ * Parse JSON from Claude, repairing truncation if needed.
  */
-function parseClaudeJSON(raw: string): FactCheckResult & { category: string } {
-  // Strip markdown
-  let text = raw.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+function repairAndParseJSON(raw: string): FactCheckResult & { category: string } {
+  // Strip markdown fences
+  let text = raw.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
 
-  // Extract the outermost JSON object
   const start = text.indexOf('{');
   if (start === -1) {
-    console.error('No JSON found in Claude response:', raw.substring(0, 300));
+    console.error('No JSON object in response:', raw.substring(0, 300));
     throw new Error('Failed to parse AI response as JSON');
   }
-
   text = text.substring(start);
 
-  // Try parsing as-is first
-  try {
-    return JSON.parse(text);
-  } catch {
-    // Continue to repair
+  // Attempt 1: parse as-is
+  try { return JSON.parse(text); } catch { /* continue */ }
+
+  // Attempt 2: fix common issues then try to close truncated JSON
+  // Trim any trailing non-JSON text after the last } or ]
+  const lastBrace = text.lastIndexOf('}');
+  const lastBracket = text.lastIndexOf(']');
+  const lastClose = Math.max(lastBrace, lastBracket);
+  if (lastClose > 0) {
+    const trimmed = text.substring(0, lastClose + 1)
+      .replace(/,\s*}/g, '}')
+      .replace(/,\s*]/g, ']');
+    try { return JSON.parse(trimmed); } catch { /* continue */ }
   }
 
-  // Fix trailing commas
-  let fixed = text
-    .replace(/,\s*}/g, '}')
-    .replace(/,\s*]/g, ']');
+  // Attempt 3: aggressive truncation repair
+  // Find the last successfully parseable prefix
+  // Strategy: truncate at the last complete property, close all open structures
+  let repaired = text;
 
-  try {
-    return JSON.parse(fixed);
-  } catch {
-    // Continue to repair truncation
-  }
-
-  // Handle truncated JSON: close any open brackets/braces
-  // Count unmatched openers
-  let braces = 0;
-  let brackets = 0;
-  let inString = false;
-  let escape = false;
-
-  for (const ch of fixed) {
-    if (escape) { escape = false; continue; }
-    if (ch === '\\') { escape = true; continue; }
-    if (ch === '"') { inString = !inString; continue; }
-    if (inString) continue;
-    if (ch === '{') braces++;
-    if (ch === '}') braces--;
-    if (ch === '[') brackets++;
-    if (ch === ']') brackets--;
-  }
-
-  // Remove any trailing incomplete string (ends mid-value)
-  if (inString) {
-    // Find last complete key-value and truncate there
-    const lastQuote = fixed.lastIndexOf('"');
-    if (lastQuote > 0) {
-      fixed = fixed.substring(0, lastQuote + 1);
+  // If we're mid-string, close it
+  const quoteCount = (repaired.match(/(?<!\\)"/g) || []).length;
+  if (quoteCount % 2 !== 0) {
+    // Truncate to last complete string
+    const lastGoodQuote = findLastCompleteString(repaired);
+    if (lastGoodQuote > 0) {
+      repaired = repaired.substring(0, lastGoodQuote + 1);
+    } else {
+      repaired += '"';
     }
   }
 
-  // Close open structures
-  // Remove trailing comma before closing
-  fixed = fixed.replace(/,\s*$/, '');
+  // Remove trailing partial tokens (comma, colon, etc.)
+  repaired = repaired.replace(/[,:\s]+$/, '');
 
-  for (let i = 0; i < brackets; i++) fixed += ']';
-  for (let i = 0; i < braces; i++) fixed += '}';
+  // Close all open brackets and braces
+  let openBraces = 0;
+  let openBrackets = 0;
+  let inStr = false;
+  let esc = false;
+  for (const ch of repaired) {
+    if (esc) { esc = false; continue; }
+    if (ch === '\\' && inStr) { esc = true; continue; }
+    if (ch === '"') { inStr = !inStr; continue; }
+    if (inStr) continue;
+    if (ch === '{') openBraces++;
+    else if (ch === '}') openBraces--;
+    else if (ch === '[') openBrackets++;
+    else if (ch === ']') openBrackets--;
+  }
 
-  // Final cleanup
-  fixed = fixed
+  // Remove trailing comma before we close
+  repaired = repaired.replace(/,\s*$/, '');
+
+  for (let i = 0; i < openBrackets; i++) repaired += ']';
+  for (let i = 0; i < openBraces; i++) repaired += '}';
+
+  repaired = repaired
     .replace(/,\s*}/g, '}')
     .replace(/,\s*]/g, ']');
 
-  try {
-    return JSON.parse(fixed);
-  } catch {
-    console.error('JSON repair failed. Raw:', raw.substring(0, 500));
-    console.error('Repaired attempt:', fixed.substring(0, 500));
-    throw new Error('Failed to parse AI response as JSON');
+  try { return JSON.parse(repaired); } catch { /* continue */ }
+
+  // Attempt 4: extract just the core fields with regex
+  console.error('All JSON repair attempts failed. Extracting fields manually.');
+  console.error('Raw response:', raw.substring(0, 800));
+
+  const verdict = extractField(raw, 'verdict') || 'unverified';
+  const confidence = parseInt(extractField(raw, 'confidence') || '50', 10);
+  const summary = extractField(raw, 'summary') || 'No se pudo completar el análisis.';
+  const analysis = extractField(raw, 'analysis') || summary;
+  const category = extractField(raw, 'category') || 'other';
+
+  return {
+    verdict: verdict as FactCheckResult['verdict'],
+    confidence,
+    summary,
+    analysis,
+    category,
+    sources: [],
+  };
+}
+
+function findLastCompleteString(text: string): number {
+  let lastComplete = -1;
+  let inStr = false;
+  let esc = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (esc) { esc = false; continue; }
+    if (ch === '\\' && inStr) { esc = true; continue; }
+    if (ch === '"') {
+      if (inStr) lastComplete = i;
+      inStr = !inStr;
+    }
   }
+  return lastComplete;
+}
+
+function extractField(text: string, field: string): string | null {
+  const regex = new RegExp(`"${field}"\\s*:\\s*"([^"]*)"`, 'i');
+  const match = text.match(regex);
+  return match ? match[1] : null;
 }
