@@ -4,6 +4,7 @@ import { searchSources } from '@/lib/feeds';
 import { queryGoogleFactCheck, googleClaimsToSources } from '@/lib/googleFactCheck';
 import { searchWikipedia } from '@/lib/wikipedia';
 import { scoreClaim } from '@/lib/claimbuster';
+import { searchContextualSources } from '@/lib/contextual';
 import { getCredibilityScore, getSourceName } from '@/lib/sources';
 import { createClient } from '@supabase/supabase-js';
 
@@ -179,9 +180,10 @@ export async function POST(request: NextRequest) {
           label: 'Buscando fuentes y contexto...',
         })));
 
-        const [contextSources, wikiResults] = await Promise.all([
+        const [contextSources, wikiResults, contextualResults] = await Promise.all([
           searchSources(claim).catch(() => []),
           searchWikipedia(claim).catch(() => []),
+          searchContextualSources(classification?.category || 'other', classification?.urgency || 'medium', claim).catch(() => []),
         ]);
 
         // Add Wikipedia as sources
@@ -191,7 +193,7 @@ export async function POST(request: NextRequest) {
           content: w.extract,
         }));
 
-        const allSources = [...contextSources, ...googleSources, ...wikiSources];
+        const allSources = [...contextSources, ...googleSources, ...wikiSources, ...contextualResults];
 
         controller.enqueue(encoder.encode(sseEvent('step', {
           step: 'sources_found',

@@ -19,6 +19,10 @@ const CREDIBLE_SOURCES: Record<string, number> = {
   'newtral.es': 88,
   'chequeado.com': 88,
   'verificado.mx': 86,
+  'reliefweb.int': 92,
+  'gdacs.org': 88,
+  'earthquake.usgs.gov': 95,
+  'eonet.gsfc.nasa.gov': 93,
 };
 
 export function getCredibilityScore(url: string): number {
