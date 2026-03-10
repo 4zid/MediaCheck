@@ -1,126 +1,112 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { Header } from '@/components/layout/Header';
-import { Sidebar } from '@/components/layout/Sidebar';
-import { RightSidebar } from '@/components/layout/RightSidebar';
-import { ClaimTimeline } from '@/components/claims/ClaimTimeline';
-import { useClaims } from '@/hooks/useClaims';
-import { useRealtime } from '@/hooks/useRealtime';
-import { VERDICT_CONFIG, type VerdictType } from '@/lib/types';
-import Link from 'next/link';
-import { Loader2, Send, HomeIcon, Hash, ShieldCheck } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { AppNav } from '@/components/AppNav';
+import { NewsBlock } from '@/components/NewsBlock';
+import { Loader2 } from 'lucide-react';
+import type { NewsItem } from '@/app/api/news/route';
 
-export default function Home() {
-  const [search, setSearch] = useState('');
-  const [verdict, setVerdict] = useState<VerdictType | undefined>();
+function Skeleton() {
+  return (
+    <div className="border-b border-gray-100 dark:border-gray-800/80 px-5 py-4 animate-pulse">
+      <div className="flex items-center gap-2 mb-3">
+        <div className="h-3 w-16 bg-gray-200 dark:bg-gray-800 rounded" />
+        <div className="h-3 w-12 bg-gray-200 dark:bg-gray-800 rounded" />
+        <div className="h-5 w-20 bg-gray-200 dark:bg-gray-800 rounded ml-auto" />
+      </div>
+      <div className="h-4 w-full bg-gray-200 dark:bg-gray-800 rounded mb-1.5" />
+      <div className="h-4 w-4/5 bg-gray-200 dark:bg-gray-800 rounded" />
+    </div>
+  );
+}
+
+export default function TendenciasPage() {
+  const [items, setItems] = useState<NewsItem[]>([]);
+  const [offset, setOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [seeding, setSeeding] = useState(false);
   const seededRef = useRef(false);
 
-  const { claims, loading, refetch } = useClaims({ search, verdict });
+  const fetchPage = useCallback(async (off: number, append: boolean) => {
+    if (append) setLoadingMore(true);
+    else setLoading(true);
 
-  const handleRefetch = useCallback(() => refetch(), [refetch]);
-  useRealtime('claims', handleRefetch);
+    try {
+      const res = await fetch(`/api/news?limit=10&offset=${off}`);
+      const data = await res.json();
+      setItems((prev) => (append ? [...prev, ...data.items] : data.items));
+      setHasMore(data.hasMore);
+      setOffset(off + 10);
+    } finally {
+      if (append) setLoadingMore(false);
+      else setLoading(false);
+    }
+  }, []);
 
-  // Auto-seed trending news when timeline is empty
+  // Initial load
   useEffect(() => {
-    if (!loading && claims.length === 0 && !seededRef.current) {
+    fetchPage(0, false);
+  }, [fetchPage]);
+
+  // Auto-seed once on first load
+  useEffect(() => {
+    if (!loading && !seededRef.current) {
       seededRef.current = true;
       setSeeding(true);
       fetch('/api/auto-verify', { method: 'POST' })
-        .then(() => refetch())
+        .then(() => fetchPage(0, false))
         .catch(() => {})
         .finally(() => setSeeding(false));
     }
-  }, [loading, claims.length, refetch]);
+  }, [loading, fetchPage]);
 
   return (
-    <div className="min-h-screen bg-white dark:bg-black text-gray-900 dark:text-white">
-      {/* Mobile top header */}
-      <Header />
+    <div className="min-h-screen bg-white dark:bg-black">
+      <AppNav />
 
-      <div className="flex max-w-[1265px] mx-auto">
-        {/* Left nav (desktop) */}
-        <Sidebar />
-
-        {/* Center feed */}
-        <main className="flex-1 min-h-screen border-x border-gray-200 dark:border-gray-800 min-w-0">
-          {/* Feed header */}
-          <div className="sticky top-0 lg:top-0 z-10 bg-white/85 dark:bg-black/85 backdrop-blur-xl border-b border-gray-200 dark:border-gray-800">
-            <div className="px-4 py-3 flex items-center gap-2">
-              <ShieldCheck size={22} className="text-indigo-500 lg:hidden" />
-              <h1 className="text-xl font-bold">Verificaciones</h1>
-            </div>
-
-            {/* Verdict filter tabs */}
-            <div className="flex overflow-x-auto scrollbar-none">
-              <button
-                onClick={() => setVerdict(undefined)}
-                className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap min-w-[80px] ${
-                  !verdict
-                    ? 'border-indigo-500 text-gray-900 dark:text-white'
-                    : 'border-transparent text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-900/50'
-                }`}
-              >
-                Todos
-              </button>
-              {(
-                Object.entries(VERDICT_CONFIG) as [
-                  VerdictType,
-                  (typeof VERDICT_CONFIG)[VerdictType],
-                ][]
-              ).map(([key, config]) => (
-                <button
-                  key={key}
-                  onClick={() => setVerdict(verdict === key ? undefined : key)}
-                  className={`flex-1 py-3 text-xs font-medium border-b-2 transition-colors whitespace-nowrap min-w-[80px] px-1 ${
-                    verdict === key
-                      ? `border-indigo-500 ${config.color}`
-                      : 'border-transparent text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-900/50'
-                  }`}
-                >
-                  {config.icon} {config.label}
-                </button>
-              ))}
-            </div>
+      <main className="max-w-2xl mx-auto">
+        {/* Status bar */}
+        {seeding && (
+          <div className="flex items-center gap-2 px-5 py-3 text-xs text-indigo-600 dark:text-indigo-400 border-b border-gray-100 dark:border-gray-800">
+            <Loader2 size={12} className="animate-spin" />
+            Verificando noticias con IA en segundo plano...
           </div>
+        )}
 
-          {/* Seeding banner */}
-          {seeding && (
-            <div className="flex items-center gap-3 px-4 py-3 bg-indigo-50 dark:bg-indigo-900/20 border-b border-indigo-100 dark:border-indigo-900/40 text-sm text-indigo-600 dark:text-indigo-300">
-              <Loader2 size={14} className="animate-spin flex-shrink-0" />
-              Verificando noticias recientes con IA...
-            </div>
-          )}
+        {/* Feed */}
+        {loading
+          ? Array.from({ length: 10 }).map((_, i) => <Skeleton key={i} />)
+          : items.map((item, i) => (
+              <NewsBlock key={`${item.link}-${i}`} {...item} />
+            ))}
 
-          {/* Timeline */}
-          <ClaimTimeline claims={claims} loading={loading || seeding} />
-        </main>
+        {/* Load more */}
+        {!loading && hasMore && (
+          <div className="py-8 flex justify-center">
+            <button
+              onClick={() => fetchPage(offset, true)}
+              disabled={loadingMore}
+              className="px-6 py-2.5 rounded-full border border-gray-200 dark:border-gray-700 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors disabled:opacity-50"
+            >
+              {loadingMore ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 size={14} className="animate-spin" /> Cargando...
+                </span>
+              ) : (
+                'Ver 10 más'
+              )}
+            </button>
+          </div>
+        )}
 
-        {/* Right sidebar (desktop) */}
-        <RightSidebar onSearch={setSearch} />
-      </div>
-
-      {/* Mobile bottom tab bar */}
-      <nav className="lg:hidden fixed bottom-0 inset-x-0 bg-white/90 dark:bg-black/90 backdrop-blur border-t border-gray-200 dark:border-gray-800 flex items-center justify-around px-8 py-2 z-40 pb-safe">
-        <Link href="/" className="flex flex-col items-center gap-0.5 p-2 text-indigo-500">
-          <HomeIcon size={24} />
-          <span className="text-[10px] font-medium">Inicio</span>
-        </Link>
-        <Link
-          href="/submit"
-          className="flex flex-col items-center gap-0.5 p-2 rounded-full bg-indigo-500 text-white px-5"
-        >
-          <Send size={22} />
-        </Link>
-        <Link href="/category/politics" className="flex flex-col items-center gap-0.5 p-2 text-gray-500">
-          <Hash size={24} />
-          <span className="text-[10px] font-medium">Explorar</span>
-        </Link>
-      </nav>
-
-      {/* Bottom padding on mobile for nav bar */}
-      <div className="lg:hidden h-20" />
+        {!loading && !hasMore && items.length > 0 && (
+          <p className="text-center py-8 text-xs text-gray-400">
+            · Fin del feed ·
+          </p>
+        )}
+      </main>
     </div>
   );
 }
