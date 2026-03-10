@@ -83,6 +83,43 @@ export async function fetchNewsAPI(query: string, limit = 10): Promise<FeedItem[
   }
 }
 
+/**
+ * GNews.io — backup for NewsAPI with independent 100 req/day limit.
+ */
+export async function fetchGNews(query: string, limit = 5): Promise<FeedItem[]> {
+  const apiKey = process.env.GNEWS_API_KEY;
+  if (!apiKey) return [];
+
+  try {
+    const params = new URLSearchParams({
+      q: query,
+      lang: 'es',
+      max: String(limit),
+      token: apiKey,
+    });
+
+    const res = await fetch(`https://gnews.io/api/v4/search?${params}`, {
+      next: { revalidate: 300 },
+    });
+
+    if (!res.ok) return [];
+
+    const data = await res.json();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (data.articles || []).map((article: any) => ({
+      title: article.title || '',
+      link: article.url || '',
+      content: (article.description || '').substring(0, 200),
+      pubDate: article.publishedAt || new Date().toISOString(),
+      source: article.source?.name || 'GNews',
+      sourceType: 'newsapi' as const,
+    }));
+  } catch {
+    console.error('Failed to fetch from GNews');
+    return [];
+  }
+}
+
 export async function fetchGDELT(query: string, limit = 10): Promise<FeedItem[]> {
   try {
     const params = new URLSearchParams({
@@ -150,15 +187,20 @@ export async function fetchBlueskySocial(query: string, limit = 10): Promise<Fee
   }
 }
 
+/**
+ * Search for relevant sources. Uses NewsAPI + GNews (fallback) + GDELT + Bluesky.
+ * Compresses results to save tokens: only title + short description + source.
+ */
 export async function searchSources(query: string): Promise<{ title: string; url: string; content: string }[]> {
-  const [rssItems, newsItems, gdeltItems, blueskyItems] = await Promise.all([
+  const [rssItems, newsItems, gnewsItems, gdeltItems, blueskyItems] = await Promise.all([
     fetchRSSFeeds(10),
-    fetchNewsAPI(query, 10),
+    fetchNewsAPI(query, 5),
+    fetchGNews(query, 5),
     fetchGDELT(query, 10),
-    fetchBlueskySocial(query, 10),
+    fetchBlueskySocial(query, 5),
   ]);
 
-  const allItems = [...rssItems, ...newsItems, ...gdeltItems, ...blueskyItems];
+  const allItems = [...rssItems, ...newsItems, ...gnewsItems, ...gdeltItems, ...blueskyItems];
 
   // Filter items relevant to the query
   const queryWords = query.toLowerCase().split(/\s+/);
@@ -167,9 +209,10 @@ export async function searchSources(query: string): Promise<{ title: string; url
     return queryWords.some((word) => word.length > 3 && text.includes(word));
   });
 
-  return relevant.slice(0, 12).map((item) => ({
+  // Compress for token savings: short content only
+  return relevant.slice(0, 10).map((item) => ({
     title: item.title,
     url: item.link,
-    content: item.content,
+    content: item.content.substring(0, 200),
   }));
 }
