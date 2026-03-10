@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { fetchRSSFeeds, fetchGDELT } from '@/lib/feeds';
 import type { FeedItem } from '@/lib/types';
 
+export const dynamic = 'force-dynamic';
+
 export interface NewsItem {
   title: string;
   source: string;

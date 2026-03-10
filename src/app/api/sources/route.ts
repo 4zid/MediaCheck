@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { searchSources } from '@/lib/feeds';
 import { getCredibilityScore, getSourceName } from '@/lib/sources';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
