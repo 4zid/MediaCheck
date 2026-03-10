@@ -2,9 +2,9 @@ import Parser from 'rss-parser';
 import type { FeedItem } from './types';
 
 const rssParser = new Parser({
-  timeout: 10000,
+  timeout: 5000,
   headers: {
-    'User-Agent': 'MediaCheck/1.0',
+    'User-Agent': 'Mozilla/5.0 (compatible; MediaCheck/1.0)',
   },
 });
 
@@ -22,7 +22,7 @@ export async function fetchRSSFeeds(limit = 20): Promise<FeedItem[]> {
   const feedPromises = RSS_FEEDS.map(async (feed) => {
     try {
       const parsed = await rssParser.parseURL(feed.url);
-      return (parsed.items || []).slice(0, 5).map((item) => ({
+      return (parsed.items || []).slice(0, 15).map((item) => ({
         title: item.title || '',
         link: item.link || '',
         content: item.contentSnippet || item.content || '',
