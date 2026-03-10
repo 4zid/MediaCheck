@@ -22,16 +22,12 @@ export async function classifyWithHaiku(
       messages: [
         {
           role: 'user',
-          content: `¿Es este texto un claim factual verificable? Responde SOLO JSON: {"verifiable":true/false,"category":"politics|health|technology|economy|environment|social|science|entertainment|other","urgency":"low|medium|high"}\n\nTexto: "${claim.substring(0, 300)}"`,
-        },
-        {
-          role: 'assistant',
-          content: '{',
+          content: `¿Es este texto un claim factual verificable? Responde SOLO con JSON, nada más: {"verifiable":true/false,"category":"politics|health|technology|economy|environment|social|science|entertainment|other","urgency":"low|medium|high"}\n\nTexto: "${claim.substring(0, 300)}"`,
         },
       ],
     });
 
-    const text = '{' + (message.content[0].type === 'text' ? message.content[0].text : '');
+    const text = message.content[0].type === 'text' ? message.content[0].text : '';
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) return null;
 
@@ -43,8 +39,7 @@ export async function classifyWithHaiku(
 }
 
 /**
- * Deep analysis with Sonnet — only called when needed.
- * Uses assistant prefill to force JSON output.
+ * Deep analysis with Sonnet.
  */
 export async function factCheck(
   claim: string,
@@ -64,17 +59,13 @@ export async function factCheck(
     messages: [
       {
         role: 'user',
-        content: `Verifica este claim: "${claim.substring(0, 500)}"${sourcesContext}\n\nResponde SOLO con el JSON.`,
-      },
-      {
-        role: 'assistant',
-        content: '{',
+        content: `Verifica este claim: "${claim.substring(0, 500)}"${sourcesContext}\n\nResponde SOLO con el JSON, sin markdown ni texto adicional.`,
       },
     ],
     system: SYSTEM_PROMPT,
   });
 
-  const text = '{' + (message.content[0].type === 'text' ? message.content[0].text : '');
+  const text = message.content[0].type === 'text' ? message.content[0].text : '';
 
   // Extract JSON — handle potential markdown wrapping
   const cleaned = text.replace(/```json\s*/g, '').replace(/```\s*/g, '');
@@ -87,7 +78,6 @@ export async function factCheck(
   try {
     return JSON.parse(jsonMatch[0]);
   } catch {
-    // Try to fix common JSON issues (trailing commas, etc.)
     const fixed = jsonMatch[0]
       .replace(/,\s*}/g, '}')
       .replace(/,\s*]/g, ']');
