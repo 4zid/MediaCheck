@@ -5,6 +5,68 @@ import { queryGoogleFactCheck, googleClaimsToSources } from '@/lib/googleFactChe
 import { getCredibilityScore, getSourceName } from '@/lib/sources';
 import { createServiceClient } from '@/lib/supabase/server';
 
+export async function GET(request: NextRequest) {
+  try {
+    const url = request.nextUrl.searchParams.get('url');
+    if (!url) {
+      return NextResponse.json({ error: 'url parameter required' }, { status: 400 });
+    }
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !serviceKey || supabaseUrl.includes('placeholder') || supabaseUrl.includes('your-project')) {
+      return NextResponse.json({ cached: false });
+    }
+
+    const supabase = createServiceClient();
+
+    const { data: claims } = await supabase
+      .from('claims')
+      .select(`
+        *,
+        verification:verifications(
+          *,
+          sources:verification_sources(*)
+        )
+      `)
+      .eq('source_url', url)
+      .limit(1);
+
+    if (claims && claims.length > 0) {
+      const claim = claims[0];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const verArr = (claim.verification as any[]) || [];
+      if (verArr.length > 0) {
+        return NextResponse.json({
+          cached: true,
+          result: {
+            claimId: claim.id,
+            verdict: verArr[0].verdict,
+            confidence: verArr[0].confidence,
+            summary: verArr[0].summary,
+            analysis: verArr[0].analysis,
+            created_at: verArr[0].created_at,
+            sources: (verArr[0].sources || []).map((s: Record<string, unknown>) => ({
+              url: s.url,
+              title: s.title,
+              snippet: s.snippet,
+              credibility_score: s.credibility_score,
+              supports_claim: s.supports_claim,
+              source_name: s.source_name,
+            })),
+          },
+        });
+      }
+    }
+
+    return NextResponse.json({ cached: false });
+  } catch (error) {
+    console.error('Cache lookup error:', error);
+    return NextResponse.json({ cached: false });
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();

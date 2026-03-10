@@ -84,6 +84,28 @@ export interface FeedItem {
   sourceType: SourceType;
 }
 
+// Verification flow types
+export type VerificationStepType =
+  | 'searching_sources'
+  | 'sources_found'
+  | 'checking_factcheckers'
+  | 'analyzing'
+  | 'complete';
+
+export interface VerificationStep {
+  step: VerificationStepType;
+  label: string;
+  data?: Record<string, unknown>;
+}
+
+export type VerificationStatus =
+  | 'idle'
+  | 'checking_cache'
+  | 'cached'
+  | 'verifying'
+  | 'complete'
+  | 'error';
+
 export const CATEGORIES: { value: ClaimCategory; label: string; emoji: string }[] = [
   { value: 'politics', label: 'Politica', emoji: '🏛️' },
   { value: 'health', label: 'Salud', emoji: '🏥' },

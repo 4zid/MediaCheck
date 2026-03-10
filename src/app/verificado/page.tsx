@@ -1,72 +1,118 @@
 'use client';
 
-import { AppNav } from '@/components/AppNav';
-import { NewsBlock } from '@/components/NewsBlock';
+import { Masthead } from '@/components/layout/Masthead';
+import { SlideOverPanel } from '@/components/layout/SlideOverPanel';
+import { VerificationPanel } from '@/components/verification/VerificationPanel';
+import { StatusIndicator } from '@/components/ui/StatusIndicator';
 import { useClaims } from '@/hooks/useClaims';
-import type { NewsStatus } from '@/app/api/news/route';
-import type { VerdictType } from '@/lib/types';
+import { formatDistanceToNow } from 'date-fns';
+import { es } from 'date-fns/locale';
+import { useState } from 'react';
+import type { ClaimWithVerification, VerdictType } from '@/lib/types';
 
-function Skeleton() {
+function ArchiveSkeleton() {
   return (
-    <div className="border-b border-gray-100 dark:border-gray-800/80 px-5 py-4 animate-pulse">
-      <div className="flex items-center gap-2 mb-3">
-        <div className="h-3 w-16 bg-gray-200 dark:bg-gray-800 rounded" />
-        <div className="h-5 w-20 bg-gray-200 dark:bg-gray-800 rounded ml-auto" />
+    <div className="px-5 py-4 border-b border-wire-border animate-pulse">
+      <div className="flex items-center gap-2 mb-2">
+        <div className="w-1.5 h-1.5 rounded-full bg-white dark:bg-surface-overlay" />
+        <div className="h-2.5 w-14 bg-white dark:bg-surface-overlay rounded" />
+        <div className="h-2.5 w-20 bg-white dark:bg-surface-overlay rounded ml-auto" />
       </div>
-      <div className="h-4 w-full bg-gray-200 dark:bg-gray-800 rounded mb-1.5" />
-      <div className="h-4 w-3/4 bg-gray-200 dark:bg-gray-800 rounded" />
+      <div className="h-5 w-full bg-white dark:bg-surface-overlay rounded mb-1.5" />
+      <div className="h-5 w-3/4 bg-white dark:bg-surface-overlay rounded" />
     </div>
   );
 }
 
-function verdictToStatus(verdict: VerdictType): NewsStatus {
-  switch (verdict) {
-    case 'verified': return 'verdadero';
-    case 'false': return 'fake';
-    case 'partially_true': return 'chequeado';
-    case 'misleading': return 'chequeado';
-    case 'unverified': return 'estimacion';
-    default: return 'sin-verificar';
-  }
-}
-
 export default function VerificadoPage() {
   const { claims, loading } = useClaims({ limit: 50 });
+  const [selectedClaim, setSelectedClaim] = useState<ClaimWithVerification | null>(null);
 
   return (
-    <div className="min-h-screen bg-white dark:bg-black">
-      <AppNav />
+    <div className="min-h-screen bg-white dark:bg-surface">
+      <Masthead />
 
-      <main className="max-w-2xl mx-auto">
+      <main className="max-w-5xl mx-auto">
+        {/* Archive header */}
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-wire-border">
+          <span className="text-xs font-bold tracking-[0.2em] text-wire-muted uppercase">
+            Archivo de verificaciones
+          </span>
+          <div className="flex-1 h-px bg-wire-border" />
+          <span className="text-[10px] text-wire-muted tracking-wider">
+            {claims.length} resultados
+          </span>
+        </div>
+
         {loading ? (
-          Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} />)
+          Array.from({ length: 8 }).map((_, i) => <ArchiveSkeleton key={i} />)
         ) : claims.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 text-center px-6">
-            <p className="text-4xl mb-4">🛡️</p>
-            <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200 mb-2">
+            <h2 className="font-headline text-xl text-white/80 mb-2">
               Sin verificaciones aún
             </h2>
-            <p className="text-sm text-gray-400">
-              Las noticias verificadas aparecerán aquí automáticamente
+            <p className="text-sm text-wire-muted">
+              Las noticias verificadas aparecerán aquí
             </p>
           </div>
         ) : (
-          claims.map((claim) => (
-            <NewsBlock
-              key={claim.id}
-              title={claim.content}
-              source={claim.source_url
-                ? new URL(claim.source_url).hostname.replace('www.', '')
-                : 'MediaCheck'}
-              pubDate={claim.created_at}
-              link={claim.source_url ?? undefined}
-              status={verdictToStatus(claim.verification.verdict)}
-              confidence={claim.verification.confidence}
-              category={claim.category}
-            />
-          ))
+          claims.map((claim) => {
+            let timeAgo = '';
+            try {
+              timeAgo = formatDistanceToNow(new Date(claim.created_at), { locale: es, addSuffix: true });
+            } catch { /* ignore */ }
+
+            return (
+              <article
+                key={claim.id}
+                onClick={() => setSelectedClaim(claim)}
+                className="group px-5 py-4 border-b border-wire-border hover:bg-white dark:bg-surface-overlay/50 cursor-pointer transition-colors"
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <StatusIndicator status={claim.verification.verdict as VerdictType} />
+                  <span className="text-[11px] font-bold tracking-[0.12em] text-wire-muted uppercase">
+                    {claim.source_url
+                      ? new URL(claim.source_url).hostname.replace('www.', '')
+                      : 'MediaCheck'}
+                  </span>
+                  {timeAgo && (
+                    <>
+                      <span className="text-wire-muted/40 text-[10px]">/</span>
+                      <span className="text-[10px] text-wire-muted/60">{timeAgo}</span>
+                    </>
+                  )}
+                  <span className="ml-auto text-[10px] font-bold tracking-wider text-wire-muted uppercase">
+                    {claim.verification.confidence}%
+                  </span>
+                </div>
+                <h3 className="font-headline text-lg leading-snug text-white/90 group-hover:text-white transition-colors">
+                  {claim.content}
+                </h3>
+                <p className="mt-1.5 text-xs text-wire-muted line-clamp-1">
+                  {claim.verification.summary}
+                </p>
+              </article>
+            );
+          })
         )}
       </main>
+
+      <SlideOverPanel
+        isOpen={!!selectedClaim}
+        onClose={() => setSelectedClaim(null)}
+      >
+        {selectedClaim && (
+          <VerificationPanel
+            title={selectedClaim.content}
+            source={
+              selectedClaim.source_url
+                ? new URL(selectedClaim.source_url).hostname.replace('www.', '')
+                : 'MediaCheck'
+            }
+            link={selectedClaim.source_url || ''}
+          />
+        )}
+      </SlideOverPanel>
     </div>
   );
 }
