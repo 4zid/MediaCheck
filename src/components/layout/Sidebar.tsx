@@ -13,7 +13,8 @@ interface SidebarProps {
   onVerdictChange?: (v: VerdictType | undefined) => void;
 }
 
-export function Sidebar(_props: SidebarProps) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function Sidebar(_props: SidebarProps = {}) {
   const pathname = usePathname();
   const { theme, toggleTheme } = useTheme();
 

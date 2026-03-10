@@ -9,7 +9,7 @@ import { useClaims } from '@/hooks/useClaims';
 import { useRealtime } from '@/hooks/useRealtime';
 import { VERDICT_CONFIG, type VerdictType } from '@/lib/types';
 import Link from 'next/link';
-import { Loader2, Send, Home, Hash, ShieldCheck } from 'lucide-react';
+import { Loader2, Send, HomeIcon, Hash, ShieldCheck } from 'lucide-react';
 
 export default function Home() {
   const [search, setSearch] = useState('');
@@ -104,7 +104,7 @@ export default function Home() {
       {/* Mobile bottom tab bar */}
       <nav className="lg:hidden fixed bottom-0 inset-x-0 bg-white/90 dark:bg-black/90 backdrop-blur border-t border-gray-200 dark:border-gray-800 flex items-center justify-around px-8 py-2 z-40 pb-safe">
         <Link href="/" className="flex flex-col items-center gap-0.5 p-2 text-indigo-500">
-          <Home size={24} />
+          <HomeIcon size={24} />
           <span className="text-[10px] font-medium">Inicio</span>
         </Link>
         <Link
