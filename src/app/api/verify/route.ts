@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
         confidence: result.confidence,
         summary: result.summary,
         analysis: result.analysis,
-        ai_model: 'claude-sonnet-4-5-20250929',
+        ai_model: 'claude-sonnet-4-6',
       })
       .select()
       .single();
