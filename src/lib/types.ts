@@ -16,7 +16,7 @@ export type VerdictType =
   | 'unverified'
   | 'misleading';
 
-export type SourceType = 'rss' | 'newsapi' | 'twitter' | 'manual' | 'url';
+export type SourceType = 'rss' | 'newsapi' | 'twitter' | 'manual' | 'url' | 'gdelt' | 'bluesky';
 
 export interface Claim {
   id: string;

@@ -83,13 +83,82 @@ export async function fetchNewsAPI(query: string, limit = 10): Promise<FeedItem[
   }
 }
 
+export async function fetchGDELT(query: string, limit = 10): Promise<FeedItem[]> {
+  try {
+    const params = new URLSearchParams({
+      query,
+      mode: 'artlist',
+      maxrecords: String(limit),
+      format: 'json',
+      sort: 'hybridrel',
+    });
+
+    const res = await fetch(
+      `https://api.gdeltproject.org/api/v2/doc/doc?${params}`,
+      { next: { revalidate: 300 } }
+    );
+
+    if (!res.ok) return [];
+
+    const data = await res.json();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (data.articles || []).map((article: any) => ({
+      title: article.title || '',
+      link: article.url || '',
+      content: `[${article.domain || 'GDELT'}] ${article.language || ''} — ${article.sourcecountry || ''}`.trim(),
+      pubDate: article.seendate
+        ? new Date(article.seendate.replace(/(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z/, '$1-$2-$3T$4:$5:$6Z')).toISOString()
+        : new Date().toISOString(),
+      source: article.domain || 'GDELT',
+      sourceType: 'gdelt' as const,
+    }));
+  } catch {
+    console.error('Failed to fetch from GDELT');
+    return [];
+  }
+}
+
+export async function fetchBlueskySocial(query: string, limit = 10): Promise<FeedItem[]> {
+  try {
+    const params = new URLSearchParams({
+      q: query,
+      limit: String(limit),
+    });
+
+    const res = await fetch(
+      `https://public.api.bsky.app/xrpc/app.bsky.feed.searchPosts?${params}`,
+      { next: { revalidate: 120 } }
+    );
+
+    if (!res.ok) return [];
+
+    const data = await res.json();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (data.posts || []).map((post: any) => ({
+      title: `@${post.author?.handle || 'bluesky'}`,
+      link: post.uri
+        ? `https://bsky.app/profile/${post.author?.handle}/post/${post.uri.split('/').pop()}`
+        : '',
+      content: post.record?.text || '',
+      pubDate: post.record?.createdAt || new Date().toISOString(),
+      source: 'Bluesky',
+      sourceType: 'bluesky' as const,
+    }));
+  } catch {
+    console.error('Failed to fetch from Bluesky');
+    return [];
+  }
+}
+
 export async function searchSources(query: string): Promise<{ title: string; url: string; content: string }[]> {
-  const [rssItems, newsItems] = await Promise.all([
+  const [rssItems, newsItems, gdeltItems, blueskyItems] = await Promise.all([
     fetchRSSFeeds(10),
     fetchNewsAPI(query, 10),
+    fetchGDELT(query, 10),
+    fetchBlueskySocial(query, 10),
   ]);
 
-  const allItems = [...rssItems, ...newsItems];
+  const allItems = [...rssItems, ...newsItems, ...gdeltItems, ...blueskyItems];
 
   // Filter items relevant to the query
   const queryWords = query.toLowerCase().split(/\s+/);
@@ -98,7 +167,7 @@ export async function searchSources(query: string): Promise<{ title: string; url
     return queryWords.some((word) => word.length > 3 && text.includes(word));
   });
 
-  return relevant.slice(0, 8).map((item) => ({
+  return relevant.slice(0, 12).map((item) => ({
     title: item.title,
     url: item.link,
     content: item.content,

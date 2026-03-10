@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { factCheck } from '@/lib/claude';
 import { searchSources } from '@/lib/feeds';
+import { queryGoogleFactCheck, googleClaimsToSources } from '@/lib/googleFactCheck';
 import { getCredibilityScore, getSourceName } from '@/lib/sources';
 import { createServiceClient } from '@/lib/supabase/server';
 
@@ -16,11 +17,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 1. Search for relevant sources
-    const contextSources = await searchSources(claim);
+    // 1. Search for relevant sources (RSS/NewsAPI + Google Fact Check)
+    const [contextSources, googleResult] = await Promise.all([
+      searchSources(claim),
+      queryGoogleFactCheck(claim),
+    ]);
+    const googleSources = googleClaimsToSources(googleResult.claims);
+    const allSources = [...contextSources, ...googleSources];
 
     // 2. Run fact-check with Claude
-    const result = await factCheck(claim, contextSources);
+    const result = await factCheck(claim, allSources);
 
     // 3. Store in database
     const supabase = createServiceClient();
