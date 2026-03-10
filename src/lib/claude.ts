@@ -55,7 +55,7 @@ export async function factCheck(
 
   const message = await client.messages.create({
     model: 'claude-sonnet-4-6',
-    max_tokens: 600,
+    max_tokens: 1200,
     messages: [
       {
         role: 'user',
@@ -67,20 +67,90 @@ export async function factCheck(
 
   const text = message.content[0].type === 'text' ? message.content[0].text : '';
 
-  // Extract JSON — handle potential markdown wrapping
-  const cleaned = text.replace(/```json\s*/g, '').replace(/```\s*/g, '');
-  const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    console.error('Claude raw response:', text.substring(0, 500));
+  return parseClaudeJSON(text);
+}
+
+/**
+ * Robustly parse JSON from Claude's response, handling:
+ * - Markdown code blocks
+ * - Trailing commas
+ * - Truncated JSON (close open brackets/braces)
+ */
+function parseClaudeJSON(raw: string): FactCheckResult & { category: string } {
+  // Strip markdown
+  let text = raw.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+
+  // Extract the outermost JSON object
+  const start = text.indexOf('{');
+  if (start === -1) {
+    console.error('No JSON found in Claude response:', raw.substring(0, 300));
     throw new Error('Failed to parse AI response as JSON');
   }
 
+  text = text.substring(start);
+
+  // Try parsing as-is first
   try {
-    return JSON.parse(jsonMatch[0]);
+    return JSON.parse(text);
   } catch {
-    const fixed = jsonMatch[0]
-      .replace(/,\s*}/g, '}')
-      .replace(/,\s*]/g, ']');
+    // Continue to repair
+  }
+
+  // Fix trailing commas
+  let fixed = text
+    .replace(/,\s*}/g, '}')
+    .replace(/,\s*]/g, ']');
+
+  try {
     return JSON.parse(fixed);
+  } catch {
+    // Continue to repair truncation
+  }
+
+  // Handle truncated JSON: close any open brackets/braces
+  // Count unmatched openers
+  let braces = 0;
+  let brackets = 0;
+  let inString = false;
+  let escape = false;
+
+  for (const ch of fixed) {
+    if (escape) { escape = false; continue; }
+    if (ch === '\\') { escape = true; continue; }
+    if (ch === '"') { inString = !inString; continue; }
+    if (inString) continue;
+    if (ch === '{') braces++;
+    if (ch === '}') braces--;
+    if (ch === '[') brackets++;
+    if (ch === ']') brackets--;
+  }
+
+  // Remove any trailing incomplete string (ends mid-value)
+  if (inString) {
+    // Find last complete key-value and truncate there
+    const lastQuote = fixed.lastIndexOf('"');
+    if (lastQuote > 0) {
+      fixed = fixed.substring(0, lastQuote + 1);
+    }
+  }
+
+  // Close open structures
+  // Remove trailing comma before closing
+  fixed = fixed.replace(/,\s*$/, '');
+
+  for (let i = 0; i < brackets; i++) fixed += ']';
+  for (let i = 0; i < braces; i++) fixed += '}';
+
+  // Final cleanup
+  fixed = fixed
+    .replace(/,\s*}/g, '}')
+    .replace(/,\s*]/g, ']');
+
+  try {
+    return JSON.parse(fixed);
+  } catch {
+    console.error('JSON repair failed. Raw:', raw.substring(0, 500));
+    console.error('Repaired attempt:', fixed.substring(0, 500));
+    throw new Error('Failed to parse AI response as JSON');
   }
 }
