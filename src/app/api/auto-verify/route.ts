@@ -7,6 +7,18 @@ import { createServiceClient } from '@/lib/supabase/server';
 
 export async function POST() {
   try {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+    const anthropicKey = process.env.ANTHROPIC_API_KEY || '';
+
+    if (
+      !supabaseUrl || supabaseUrl.includes('your-project') || supabaseUrl.includes('placeholder') ||
+      !serviceKey || serviceKey.includes('your-service') ||
+      !anthropicKey || anthropicKey.includes('your-key')
+    ) {
+      return NextResponse.json({ skipped: true, reason: 'env vars not configured' });
+    }
+
     const supabase = createServiceClient();
 
     // Skip if DB already has claims

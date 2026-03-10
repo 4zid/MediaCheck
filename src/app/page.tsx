@@ -35,10 +35,13 @@ export default function TendenciasPage() {
 
     try {
       const res = await fetch(`/api/news?limit=10&offset=${off}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      setItems((prev) => (append ? [...prev, ...data.items] : data.items));
-      setHasMore(data.hasMore);
+      setItems((prev) => (append ? [...prev, ...data.items] : data.items || []));
+      setHasMore(data.hasMore ?? false);
       setOffset(off + 10);
+    } catch (err) {
+      console.error('Failed to fetch news:', err);
     } finally {
       if (append) setLoadingMore(false);
       else setLoading(false);
