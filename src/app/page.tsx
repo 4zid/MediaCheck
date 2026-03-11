@@ -9,6 +9,7 @@ import { WireItemSkeleton } from '@/components/feed/WireItemSkeleton';
 import { CaseCard } from '@/components/investigations/CaseCard';
 import { CaseDetail } from '@/components/investigations/CaseDetail';
 import { VerificationPanel } from '@/components/verification/VerificationPanel';
+import { EconomicBadge } from '@/components/argentina/EconomicBadge';
 import { Loader2, Radio, Search } from 'lucide-react';
 import type { NewsItem } from '@/app/api/news/route';
 
@@ -75,16 +76,26 @@ export default function HomePage() {
       .catch(() => {});
   }, []);
 
-  // Fetch news
+  // Fetch news — routes to /api/argentina/feed when Argentina is selected
   const fetchPage = useCallback(async (off: number, append: boolean, source?: string) => {
     if (append) setLoadingMore(true);
     else setLoading(true);
 
     try {
+      const isArgentina = source?.startsWith('ar-');
       const params = new URLSearchParams({ limit: '10', offset: String(off) });
-      if (source && source !== 'all') params.set('source', source);
 
-      const res = await fetch(`/api/news?${params}`);
+      let url: string;
+      if (isArgentina) {
+        const arCategory = source === 'ar-all' ? 'all' : source!.replace('ar-', '');
+        params.set('category', arCategory);
+        url = `/api/argentina/feed?${params}`;
+      } else {
+        if (source && source !== 'all') params.set('source', source);
+        url = `/api/news?${params}`;
+      }
+
+      const res = await fetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       setItems(prev => (append ? [...prev, ...data.items] : data.items || []));
@@ -128,6 +139,7 @@ export default function HomePage() {
   };
 
   const activeInvestigations = investigations.filter(i => i.status === 'active').slice(0, 3);
+  const isArgentinaMode = activeSource.startsWith('ar-');
 
   return (
     <div className="min-h-screen bg-surface bg-ambient">
@@ -186,6 +198,13 @@ export default function HomePage() {
           </div>
 
           <SourceFilter activeSource={activeSource} onSourceChange={handleSourceChange} />
+
+          {/* Economic badge when Argentina is active */}
+          {isArgentinaMode && (
+            <div className="py-3">
+              <EconomicBadge />
+            </div>
+          )}
 
           <div className="mt-1">
             {loading ? (

@@ -43,6 +43,8 @@ The core is a 7-step SSE streaming pipeline that progressively filters claims to
 | `src/lib/claimbuster.ts` | ClaimBuster API for verifiability scoring. |
 | `src/hooks/useVerification.ts` | Client-side SSE stream consumer with step tracking. |
 | `src/lib/investigations.ts` | Investigation case logic: `detectAndCreateCases()`, `recheckInvestigation()`, `getActiveInvestigations()`. |
+| `src/lib/argentina/economic.ts` | DolarAPI + ArgentinaDatos: dollar rates (blue, oficial, MEP, CCL) and inflation data. No API keys. |
+| `src/lib/argentina/feeds.ts` | Argentine RSS (Infobae, Clarin, La Nacion, P12, Ambito, Chequeado) + GDELT AR + GNews AR + NewsAPI AR. Auto-categorizes into politics/economy/justice/social. |
 
 ### Investigation System
 
