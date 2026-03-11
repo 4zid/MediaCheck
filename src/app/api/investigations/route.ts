@@ -1,5 +1,7 @@
 import { getActiveInvestigations } from '@/lib/investigations';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     const investigations = await getActiveInvestigations();

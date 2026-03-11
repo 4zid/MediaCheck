@@ -13,10 +13,11 @@ REGLAS ESTRICTAS:
 - "summary": máximo 2 oraciones cortas
 - "analysis": máximo 1 párrafo corto
 - "sources": máximo 3 fuentes, snippets de máximo 50 caracteres
+- "supports_claim": SOLO usa true/false si la fuente habla DIRECTAMENTE del mismo tema del claim. Si la fuente no tiene relación directa, usa null.
 - Las fuentes con fechas del año actual (${today.slice(0, 4)}) son recientes y válidas. NO las descartes por "fecha futura".
 - Usa las fechas de publicación de las fuentes para evaluar su relevancia temporal.
 Estructura exacta:
-{"verdict":"verified|partially_true|false|unverified|misleading","confidence":0-100,"summary":"...","analysis":"...","category":"politics|health|technology|economy|environment|social|science|entertainment|other","sources":[{"url":"...","title":"...","snippet":"...","credibility_score":0-100,"supports_claim":true,"source_name":"..."}]}`;
+{"verdict":"verified|partially_true|false|unverified|misleading","confidence":0-100,"summary":"...","analysis":"...","category":"politics|health|technology|economy|environment|social|science|entertainment|other","sources":[{"url":"...","title":"...","snippet":"...","credibility_score":0-100,"supports_claim":true|false|null,"source_name":"..."}]}`;
 }
 
 /**
