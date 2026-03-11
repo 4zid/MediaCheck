@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
-import { detectAndCreateCases, recheckInvestigation } from '@/lib/investigations';
+import { recheckInvestigation } from '@/lib/investigations';
+import { manageCases } from '@/lib/argentina/case-manager';
 import { createClient } from '@supabase/supabase-js';
 
 export const maxDuration = 60;
@@ -14,8 +15,8 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Detect and create new cases
-    await detectAndCreateCases();
+    // Use Argentina case manager to maintain exactly 3 active cases
+    await manageCases();
 
     // Recheck all active investigations
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;

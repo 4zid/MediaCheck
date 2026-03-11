@@ -5,6 +5,7 @@ import { searchContextualSources } from './contextual';
 import { factCheck } from './claude';
 import { getCredibilityScore, getSourceName } from './sources';
 import { fetchArgentinaFeed, categorizeArticle } from './argentina/feeds';
+import { manageCases } from './argentina/case-manager';
 
 function getSupabase(): SupabaseClient | null {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -341,9 +342,13 @@ export async function getActiveInvestigations(): Promise<(Investigation & { sour
     .limit(1);
 
   if (!anyActive || anyActive.length === 0) {
-    // Try to seed initial cases (non-blocking best effort)
-    await seedInvestigations().catch(err => {
-      console.error('Seed investigations failed:', err);
+    // Use Argentina case manager to create/maintain 3 active cases
+    await manageCases().catch(err => {
+      console.error('Case manager failed, falling back to seed:', err);
+      // Fallback to basic seeding if case manager fails
+      return seedInvestigations().catch(seedErr => {
+        console.error('Seed investigations also failed:', seedErr);
+      });
     });
   }
 
