@@ -5,70 +5,58 @@ import { usePathname } from 'next/navigation';
 import { Sun, Moon } from 'lucide-react';
 import { useTheme } from '@/hooks/useTheme';
 
-function formatSpanishDate(): string {
-  const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-  const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-  const now = new Date();
-  return `${days[now.getDay()]}, ${now.getDate()} de ${months[now.getMonth()]} de ${now.getFullYear()}`;
-}
-
 export function Masthead() {
   const pathname = usePathname();
   const { theme, toggleTheme } = useTheme();
 
   const tabs = [
-    { href: '/', label: 'Wire' },
+    { href: '/', label: 'Casos' },
     { href: '/verificado', label: 'Archivo' },
   ];
 
   return (
-    <header className="sticky top-0 z-40 bg-white/95 dark:bg-surface/95 backdrop-blur-md border-b border-gray-200 dark:border-wire-border">
-      <div className="max-w-5xl mx-auto px-5">
-        {/* Top row: date + theme toggle */}
-        <div className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-wire-border/50">
-          <span className="text-[11px] tracking-wide text-gray-400 dark:text-wire-muted uppercase">
-            {formatSpanishDate()}
-          </span>
+    <header className="sticky top-0 z-40 bg-surface/80 backdrop-blur-2xl border-b border-white/[0.06]">
+      <div className="max-w-6xl mx-auto px-5">
+        <div className="flex items-center justify-between h-14">
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-2.5 group">
+            <div className="w-7 h-7 rounded-lg bg-accent/10 border border-accent/20 flex items-center justify-center group-hover:bg-accent/20 group-hover:border-accent/30 transition-all duration-300">
+              <span className="text-accent text-xs font-headline font-bold">m</span>
+            </div>
+            <span className="font-headline text-[15px] font-bold tracking-tight text-white/90 group-hover:text-white transition-colors">
+              mediacheck
+            </span>
+          </Link>
+
+          {/* Nav */}
+          <nav className="flex items-center gap-1">
+            {tabs.map(({ href, label }) => {
+              const active = pathname === href;
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className={`px-3.5 py-1.5 rounded-lg text-[13px] font-medium transition-all duration-200 ${
+                    active
+                      ? 'bg-white/[0.08] text-white'
+                      : 'text-white/40 hover:text-white/70 hover:bg-white/[0.04]'
+                  }`}
+                >
+                  {label}
+                </Link>
+              );
+            })}
+          </nav>
+
+          {/* Theme toggle */}
           <button
             onClick={toggleTheme}
-            className="p-1.5 rounded text-gray-400 dark:text-wire-muted hover:text-gray-900 dark:hover:text-white transition-colors"
-            aria-label="Toggle theme"
+            className="p-2 rounded-lg text-white/30 hover:text-white/60 hover:bg-white/[0.04] transition-all duration-200"
+            aria-label="Cambiar tema"
           >
-            {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
+            {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
           </button>
         </div>
-
-        {/* Masthead title */}
-        <div className="py-4 text-center">
-          <Link href="/" className="inline-block">
-            <h1 className="text-2xl sm:text-3xl font-headline tracking-[0.08em] text-gray-900 dark:text-white uppercase">
-              MEDIACHECK
-            </h1>
-          </Link>
-          <p className="text-[10px] tracking-[0.3em] text-gray-400 dark:text-wire-muted uppercase mt-0.5">
-            Verificación independiente de hechos
-          </p>
-        </div>
-
-        {/* Navigation tabs */}
-        <nav className="flex items-center gap-6 justify-center pb-2">
-          {tabs.map(({ href, label }) => {
-            const active = pathname === href;
-            return (
-              <Link
-                key={href}
-                href={href}
-                className={`text-xs tracking-[0.15em] uppercase pb-2 border-b-2 transition-colors ${
-                  active
-                    ? 'border-gray-900 dark:border-white text-gray-900 dark:text-white'
-                    : 'border-transparent text-gray-400 dark:text-wire-muted hover:text-gray-600 dark:hover:text-white/70'
-                }`}
-              >
-                {label}
-              </Link>
-            );
-          })}
-        </nav>
       </div>
     </header>
   );

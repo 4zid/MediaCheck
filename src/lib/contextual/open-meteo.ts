@@ -105,5 +105,6 @@ export async function searchOpenMeteo(claim: string): Promise<ContextualSource[]
     title: `[Open-Meteo] Air Quality in ${city.name}`,
     url: `https://open-meteo.com/`,
     content: `Current air quality in ${city.name}: European AQI ${european_aqi} (${aqiLabel(european_aqi)}). PM10: ${pm10} µg/m³, PM2.5: ${pm2_5} µg/m³.`,
+    date: new Date().toISOString(),
   }];
 }

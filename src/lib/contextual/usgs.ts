@@ -25,5 +25,6 @@ export async function searchUSGS(): Promise<ContextualSource[]> {
     title: `[USGS] ${f.properties.title}`,
     url: f.properties.url,
     content: `Magnitude ${f.properties.mag} earthquake at ${f.properties.place}. Recorded ${new Date(f.properties.time).toISOString().slice(0, 10)}.`,
+    date: new Date(f.properties.time).toISOString(),
   }));
 }

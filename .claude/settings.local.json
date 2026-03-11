@@ -8,7 +8,9 @@
       "Bash(npm install:*)",
       "Bash(npx vercel:*)",
       "Bash(npm run:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Read(//c/Users/Lautaro/Downloads/**)",
+      "Bash(python3 -c \":*)"
     ]
   }
 }

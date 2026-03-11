@@ -14,16 +14,7 @@ interface WireItemProps {
   style?: React.CSSProperties;
 }
 
-const STATUS_COLORS: Record<string, string> = {
-  'sin-verificar': 'bg-amber-600',
-  verified: 'bg-green-500',
-  partially_true: 'bg-amber-500',
-  false: 'bg-red-500',
-  misleading: 'bg-orange-500',
-  unverified: 'bg-gray-500',
-};
-
-export function WireItem({ title, source, pubDate, link, verificationStatus = 'sin-verificar', onClick, style }: WireItemProps) {
+export function WireItem({ title, source, pubDate, onClick, style }: WireItemProps) {
   let timeAgo = '';
   try {
     timeAgo = formatDistanceToNow(new Date(pubDate), { locale: es, addSuffix: true });
@@ -31,48 +22,29 @@ export function WireItem({ title, source, pubDate, link, verificationStatus = 's
     timeAgo = '';
   }
 
-  const dotColor = STATUS_COLORS[verificationStatus] || STATUS_COLORS['sin-verificar'];
-
-  let hostname = '';
-  try {
-    hostname = new URL(link).hostname.replace('www.', '');
-  } catch {
-    hostname = '';
-  }
-
   return (
     <article
       onClick={onClick}
-      className="group px-5 py-4 border-b border-gray-100 dark:border-wire-border hover:bg-gray-50 dark:hover:bg-surface-overlay/50 cursor-pointer transition-colors animate-fade-in"
+      className="group px-5 py-3.5 border-b border-white/[0.04] hover:bg-white/[0.03] cursor-pointer transition-all duration-200 animate-fade-in"
       style={style}
     >
-      {/* Meta row */}
-      <div className="flex items-center gap-2 mb-2">
-        <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${dotColor}`} />
-        <span className="text-[11px] font-bold tracking-[0.12em] text-gray-400 dark:text-wire-muted uppercase">
+      {/* Title */}
+      <h3 className="text-[14px] font-medium leading-snug text-white/75 group-hover:text-white/95 transition-colors mb-1.5">
+        {title}
+      </h3>
+
+      {/* Meta */}
+      <div className="flex items-center gap-2">
+        <span className="text-[11px] font-medium text-white/20 uppercase tracking-wider">
           {source}
         </span>
         {timeAgo && (
           <>
-            <span className="text-gray-300 dark:text-wire-muted/40 text-[10px]">/</span>
-            <span className="text-[10px] text-gray-400 dark:text-wire-muted/60">{timeAgo}</span>
+            <span className="text-white/8 text-[8px]">·</span>
+            <span className="text-[11px] text-white/15">{timeAgo}</span>
           </>
         )}
       </div>
-
-      {/* Headline */}
-      <h3 className="font-headline text-lg leading-snug text-gray-900 dark:text-white/90 group-hover:text-black dark:group-hover:text-white transition-colors">
-        {title}
-      </h3>
-
-      {/* Source link hint */}
-      {hostname && (
-        <div className="mt-1.5">
-          <span className="text-[10px] text-gray-300 dark:text-wire-muted/40 tracking-wider uppercase">
-            {hostname}
-          </span>
-        </div>
-      )}
     </article>
   );
 }

@@ -191,6 +191,7 @@ export async function POST(request: NextRequest) {
           title: w.title,
           url: `https://es.wikipedia.org/wiki/${encodeURIComponent(w.title)}`,
           content: w.extract,
+          date: undefined as string | undefined,
         }));
 
         const allSources = [...contextSources, ...googleSources, ...wikiSources, ...contextualResults];

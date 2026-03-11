@@ -1,10 +1,9 @@
 import type { Metadata } from 'next';
-import { DM_Serif_Display, DM_Sans } from 'next/font/google';
+import { Manrope, DM_Sans } from 'next/font/google';
 import './globals.css';
 import { SupabaseProvider } from '@/providers/SupabaseProvider';
 
-const dmSerif = DM_Serif_Display({
-  weight: '400',
+const manrope = Manrope({
   subsets: ['latin'],
   variable: '--font-headline',
   display: 'swap',
@@ -29,7 +28,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" className="dark" suppressHydrationWarning>
-      <body className={`${dmSerif.variable} ${dmSans.variable} font-body antialiased`}>
+      <body className={`${manrope.variable} ${dmSans.variable} font-body antialiased`}>
         <SupabaseProvider>
           {children}
         </SupabaseProvider>

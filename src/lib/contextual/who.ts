@@ -22,5 +22,6 @@ export async function searchWHO(claim: string): Promise<ContextualSource[]> {
       title: `[WHO] ${item.title || 'Disease Outbreak News'}`,
       url: item.link || 'https://www.who.int/emergencies/disease-outbreak-news',
       content: (item.contentSnippet || item.content || '').slice(0, 500),
+      date: item.pubDate,
     }));
 }

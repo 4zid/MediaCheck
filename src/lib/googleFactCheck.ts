@@ -59,12 +59,13 @@ export async function queryGoogleFactCheck(query: string): Promise<GoogleFactChe
  */
 export function googleClaimsToSources(
   claims: GoogleFactCheckClaim[]
-): { title: string; url: string; content: string }[] {
+): { title: string; url: string; content: string; date?: string }[] {
   return claims.flatMap((claim) =>
     claim.claimReview.map((review) => ({
       title: review.title || claim.text,
       url: review.url,
       content: `[${review.publisher.name}] ${review.textualRating} — "${claim.text}"`,
+      date: review.reviewDate || claim.claimDate,
     }))
   );
 }

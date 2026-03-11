@@ -22,5 +22,6 @@ export async function searchGDACS(claim: string): Promise<ContextualSource[]> {
       title: `[GDACS] ${item.title || 'Alert'}`,
       url: item.link || 'https://www.gdacs.org',
       content: (item.contentSnippet || item.content || '').slice(0, 500),
+      date: item.pubDate,
     }));
 }

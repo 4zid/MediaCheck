@@ -191,7 +191,7 @@ export async function fetchBlueskySocial(query: string, limit = 10): Promise<Fee
  * Search for relevant sources. Uses NewsAPI + GNews (fallback) + GDELT + Bluesky.
  * Compresses results to save tokens: only title + short description + source.
  */
-export async function searchSources(query: string): Promise<{ title: string; url: string; content: string }[]> {
+export async function searchSources(query: string): Promise<{ title: string; url: string; content: string; date?: string }[]> {
   const [rssItems, newsItems, gnewsItems, gdeltItems, blueskyItems] = await Promise.all([
     fetchRSSFeeds(10),
     fetchNewsAPI(query, 5),
@@ -214,5 +214,6 @@ export async function searchSources(query: string): Promise<{ title: string; url
     title: item.title,
     url: item.link,
     content: item.content.substring(0, 200),
+    date: item.pubDate,
   }));
 }

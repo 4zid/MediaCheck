@@ -5,14 +5,19 @@ const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
-const SYSTEM_PROMPT = `Eres un fact-checker. Analiza el claim contra la evidencia.
+function buildSystemPrompt(): string {
+  const today = new Date().toISOString().slice(0, 10);
+  return `Eres un fact-checker. Fecha actual: ${today}.
 REGLAS ESTRICTAS:
 - Responde SOLO JSON válido, sin markdown, sin texto antes o después
 - "summary": máximo 2 oraciones cortas
 - "analysis": máximo 1 párrafo corto
 - "sources": máximo 3 fuentes, snippets de máximo 50 caracteres
+- Las fuentes con fechas del año actual (${today.slice(0, 4)}) son recientes y válidas. NO las descartes por "fecha futura".
+- Usa las fechas de publicación de las fuentes para evaluar su relevancia temporal.
 Estructura exacta:
 {"verdict":"verified|partially_true|false|unverified|misleading","confidence":0-100,"summary":"...","analysis":"...","category":"politics|health|technology|economy|environment|social|science|entertainment|other","sources":[{"url":"...","title":"...","snippet":"...","credibility_score":0-100,"supports_claim":true,"source_name":"..."}]}`;
+}
 
 /**
  * Quick classification with Haiku.
@@ -21,13 +26,14 @@ export async function classifyWithHaiku(
   claim: string
 ): Promise<{ verifiable: boolean; category: string; urgency: 'low' | 'medium' | 'high' } | null> {
   try {
+    const today = new Date().toISOString().slice(0, 10);
     const message = await client.messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 150,
       messages: [
         {
           role: 'user',
-          content: `¿Es este texto un claim factual verificable? Responde SOLO con JSON, nada más: {"verifiable":true/false,"category":"politics|health|technology|economy|environment|social|science|entertainment|other","urgency":"low|medium|high"}\n\nTexto: "${claim.substring(0, 300)}"`,
+          content: `Fecha actual: ${today}. ¿Es este texto un claim factual verificable? Responde SOLO con JSON, nada más: {"verifiable":true/false,"category":"politics|health|technology|economy|environment|social|science|entertainment|other","urgency":"low|medium|high"}\n\nTexto: "${claim.substring(0, 300)}"`,
         },
       ],
     });
@@ -48,11 +54,13 @@ export async function classifyWithHaiku(
  */
 export async function factCheck(
   claim: string,
-  contextSources: { title: string; url: string; content: string }[] = []
+  contextSources: { title: string; url: string; content: string; date?: string }[] = []
 ): Promise<FactCheckResult & { category: string }> {
-  const compressedSources = contextSources.slice(0, 5).map((s, i) =>
-    `${i + 1}. ${s.title} (${s.url})`
-  ).join('\n');
+  const compressedSources = contextSources.slice(0, 5).map((s, i) => {
+    const dateStr = s.date ? `[${s.date.slice(0, 10)}] ` : '';
+    const snippet = s.content ? ` — ${s.content.substring(0, 100)}` : '';
+    return `${i + 1}. ${dateStr}${s.title}${snippet} (${s.url})`;
+  }).join('\n');
 
   const sourcesContext = compressedSources
     ? `\n\nFuentes:\n${compressedSources}`
@@ -67,7 +75,7 @@ export async function factCheck(
         content: `Verifica: "${claim.substring(0, 400)}"${sourcesContext}\n\nJSON solamente:`,
       },
     ],
-    system: SYSTEM_PROMPT,
+    system: buildSystemPrompt(),
   });
 
   const text = message.content[0].type === 'text' ? message.content[0].text : '';
