@@ -46,7 +46,7 @@ const VERDICT_LABELS: Record<string, { label: string; color: string }> = {
   partially_true: { label: 'Parcialmente cierto', color: 'text-amber-400' },
   false: { label: 'Falso', color: 'text-red-400' },
   misleading: { label: 'Engañoso', color: 'text-orange-400' },
-  unverified: { label: 'Sin verificar', color: 'text-white/40' },
+  unverified: { label: 'Sin verificar', color: 'text-fg/40' },
 };
 
 function CredibilityDot({ score }: { score: number }) {
@@ -73,24 +73,24 @@ export function CaseDetail({ investigation }: CaseDetailProps) {
           <span className="text-[10px] font-medium tracking-[0.12em] uppercase text-accent/70">
             {investigation.category}
           </span>
-          <span className="text-white/10">·</span>
+          <span className="text-fg/10">·</span>
           <span className={`text-xs font-medium ${currentVerdict.color}`}>
             {currentVerdict.label}
           </span>
           {investigation.confidence > 0 && (
             <>
-              <span className="text-white/10">·</span>
-              <span className="text-[11px] text-white/30 tabular-nums">{investigation.confidence}%</span>
+              <span className="text-fg/10">·</span>
+              <span className="text-[11px] text-fg/30 tabular-nums">{investigation.confidence}%</span>
             </>
           )}
         </div>
 
-        <h2 className="font-headline text-xl font-bold leading-snug text-white">
+        <h2 className="font-headline text-xl font-bold leading-snug text-fg">
           {investigation.title}
         </h2>
 
         {investigation.summary && (
-          <p className="text-sm text-white/50 leading-relaxed">
+          <p className="text-sm text-fg/50 leading-relaxed">
             {investigation.summary}
           </p>
         )}
@@ -103,7 +103,7 @@ export function CaseDetail({ investigation }: CaseDetailProps) {
 
           <div className="relative">
             {/* Vertical line */}
-            <div className="absolute left-[7px] top-2 bottom-2 w-px bg-white/[0.06]" />
+            <div className="absolute left-[7px] top-2 bottom-2 w-px bg-fg/[0.06]" />
 
             <div className="space-y-4">
               {investigation.checks.map((check, i) => {
@@ -119,7 +119,7 @@ export function CaseDetail({ investigation }: CaseDetailProps) {
                     <div className={`absolute left-0 top-1.5 w-[15px] h-[15px] rounded-full border-2 ${
                       i === 0
                         ? 'border-accent bg-accent/20'
-                        : 'border-white/10 bg-surface'
+                        : 'border-fg/10 bg-surface'
                     }`} />
 
                     <div className="glass p-4">
@@ -127,7 +127,7 @@ export function CaseDetail({ investigation }: CaseDetailProps) {
                         <span className={`text-xs font-medium ${v.color}`}>
                           {v.label}
                           {check.confidence !== null && (
-                            <span className="text-white/25 ml-1.5">{check.confidence}%</span>
+                            <span className="text-fg/25 ml-1.5">{check.confidence}%</span>
                           )}
                         </span>
 
@@ -141,7 +141,7 @@ export function CaseDetail({ investigation }: CaseDetailProps) {
                             </span>
                           )}
 
-                          <span className="flex items-center gap-1 text-[10px] text-white/20">
+                          <span className="flex items-center gap-1 text-[10px] text-fg/20">
                             <Clock size={9} />
                             {formatDate(check.created_at)}
                           </span>
@@ -149,7 +149,7 @@ export function CaseDetail({ investigation }: CaseDetailProps) {
                       </div>
 
                       {check.summary && (
-                        <p className="text-[13px] text-white/50 leading-relaxed mb-1.5">
+                        <p className="text-[13px] text-fg/50 leading-relaxed mb-1.5">
                           {check.summary}
                         </p>
                       )}
@@ -182,7 +182,7 @@ export function CaseDetail({ investigation }: CaseDetailProps) {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <CredibilityDot score={source.credibility_score} />
-                      <span className="text-[10px] text-white/25 uppercase tracking-wider">
+                      <span className="text-[10px] text-fg/25 uppercase tracking-wider">
                         {source.source_name || source.source_type || 'Fuente'}
                       </span>
                       {source.supports_claim !== null && (
@@ -194,12 +194,12 @@ export function CaseDetail({ investigation }: CaseDetailProps) {
                       )}
                     </div>
 
-                    <p className="text-[13px] text-white/70 leading-snug truncate">
+                    <p className="text-[13px] text-fg/70 leading-snug truncate">
                       {source.title || source.url}
                     </p>
 
                     {source.snippet && (
-                      <p className="text-[11px] text-white/30 mt-1 line-clamp-2">
+                      <p className="text-[11px] text-fg/30 mt-1 line-clamp-2">
                         {source.snippet}
                       </p>
                     )}
@@ -207,7 +207,7 @@ export function CaseDetail({ investigation }: CaseDetailProps) {
 
                   <div className="flex items-center gap-2 flex-shrink-0 pt-0.5">
                     {source.published_at && (
-                      <span className="text-[10px] text-white/15">
+                      <span className="text-[10px] text-fg/15">
                         {formatDate(source.published_at)}
                       </span>
                     )}
@@ -216,7 +216,7 @@ export function CaseDetail({ investigation }: CaseDetailProps) {
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={(e) => e.stopPropagation()}
-                      className="p-1 rounded text-white/15 hover:text-accent/60 transition-colors"
+                      className="p-1 rounded text-fg/15 hover:text-accent/60 transition-colors"
                     >
                       <ExternalLink size={12} />
                     </a>
@@ -225,7 +225,7 @@ export function CaseDetail({ investigation }: CaseDetailProps) {
 
                 {/* Credibility micro-bar */}
                 <div className="mt-2.5 flex items-center gap-2">
-                  <div className="flex-1 h-[2px] rounded-full bg-white/[0.04] overflow-hidden">
+                  <div className="flex-1 h-[2px] rounded-full bg-fg/[0.04] overflow-hidden">
                     <div
                       className="h-full rounded-full transition-all duration-700"
                       style={{
@@ -238,7 +238,7 @@ export function CaseDetail({ investigation }: CaseDetailProps) {
                       }}
                     />
                   </div>
-                  <span className="text-[9px] text-white/15 tabular-nums w-6 text-right">
+                  <span className="text-[9px] text-fg/15 tabular-nums w-6 text-right">
                     {source.credibility_score}
                   </span>
                 </div>
@@ -251,8 +251,8 @@ export function CaseDetail({ investigation }: CaseDetailProps) {
       {/* Empty state */}
       {investigation.checks.length === 0 && investigation.sources.length === 0 && (
         <div className="glass p-8 text-center">
-          <Shield size={24} className="mx-auto mb-3 text-white/10" />
-          <p className="text-sm text-white/30">
+          <Shield size={24} className="mx-auto mb-3 text-fg/10" />
+          <p className="text-sm text-fg/30">
             Caso recién creado. Las fuentes se acumularán con cada verificación.
           </p>
         </div>

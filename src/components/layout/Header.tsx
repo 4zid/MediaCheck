@@ -8,7 +8,7 @@ export function Header() {
   const { theme, toggleTheme } = useTheme();
 
   return (
-    <header className="lg:hidden sticky top-0 z-40 border-b border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-black/80 backdrop-blur-xl px-4">
+    <header className="lg:hidden sticky top-0 z-40 border-b border-gray-200 dark:border-gray-800 bg-fg/80 dark:bg-black/80 backdrop-blur-xl px-4">
       <div className="flex items-center justify-between h-14">
         <Link href="/" className="flex items-center gap-2">
           <ShieldCheck className="text-indigo-500" size={24} />

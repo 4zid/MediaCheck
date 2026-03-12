@@ -4,13 +4,14 @@ import { manageCases } from '@/lib/argentina/case-manager';
 import { createClient } from '@supabase/supabase-js';
 
 export const maxDuration = 60;
+export const fetchCache = 'force-no-store';
 
 export async function GET(request: NextRequest) {
   // Verify cron secret
   const authHeader = request.headers.get('authorization');
   const cronSecret = process.env.CRON_SECRET;
 
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

@@ -41,8 +41,8 @@ export function SourceFilter({ activeSource, onSourceChange }: SourceFilterProps
                 active
                   ? key === 'argentina' || activeSource.startsWith('ar-')
                     ? 'bg-accent/15 text-accent border border-accent/20'
-                    : 'bg-white/[0.08] text-white'
-                  : 'text-white/25 hover:text-white/50 hover:bg-white/[0.04]'
+                    : 'bg-fg/[0.08] text-fg'
+                  : 'text-fg/25 hover:text-fg/50 hover:bg-fg/[0.04]'
               }`}
             >
               {label}
@@ -63,7 +63,7 @@ export function SourceFilter({ activeSource, onSourceChange }: SourceFilterProps
                 className={`whitespace-nowrap px-2.5 py-1 rounded-md text-[10px] tracking-wider transition-all duration-200 ${
                   active
                     ? 'bg-accent/10 text-accent/80'
-                    : 'text-white/20 hover:text-white/40'
+                    : 'text-fg/20 hover:text-fg/40'
                 }`}
               >
                 {label}

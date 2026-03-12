@@ -54,21 +54,21 @@ export function VerdictDisplay({ verdict, confidence, summary, analysis }: Verdi
       </div>
 
       {/* Summary */}
-      <p className="text-sm text-white/80 leading-relaxed">
+      <p className="text-sm text-fg/80 leading-relaxed">
         {summary}
       </p>
 
       {/* Detailed analysis (collapsible) */}
       <button
         onClick={() => setShowAnalysis(!showAnalysis)}
-        className="flex items-center gap-1.5 text-[11px] tracking-wider text-wire-muted hover:text-white/70 uppercase transition-colors"
+        className="flex items-center gap-1.5 text-[11px] tracking-wider text-wire-muted hover:text-fg/70 uppercase transition-colors"
       >
         {showAnalysis ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
         Análisis detallado
       </button>
 
       {showAnalysis && (
-        <div className="text-sm text-white/60 leading-relaxed whitespace-pre-line border-l-2 border-wire-border pl-4 animate-fade-in">
+        <div className="text-sm text-fg/60 leading-relaxed whitespace-pre-line border-l-2 border-wire-border pl-4 animate-fade-in">
           {analysis}
         </div>
       )}

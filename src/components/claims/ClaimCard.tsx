@@ -19,7 +19,7 @@ export function ClaimCard({ claim }: ClaimCardProps) {
   const category = CATEGORIES.find((c) => c.value === claim.category);
 
   return (
-    <article className="flex gap-3 px-4 py-3 hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-colors border-b border-gray-100 dark:border-gray-800/80">
+    <article className="flex gap-3 px-4 py-3 hover:bg-gray-50/50 dark:hover:bg-fg/[0.02] transition-colors border-b border-gray-100 dark:border-gray-800/80">
       {/* Avatar */}
       <div className="flex-shrink-0 pt-0.5">
         <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center text-lg select-none">

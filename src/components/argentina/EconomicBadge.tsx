@@ -38,7 +38,7 @@ export function EconomicBadge() {
     <div className="flex items-center gap-3 px-3 py-2 glass rounded-xl animate-fade-in">
       {blue && (
         <div className="flex items-center gap-1.5">
-          <span className="text-[9px] text-white/25 uppercase tracking-wider">Blue</span>
+          <span className="text-[9px] text-fg/25 uppercase tracking-wider">Blue</span>
           <span className="text-[13px] font-headline font-bold text-accent-light tabular-nums">
             ${blue.venta.toLocaleString('es-AR')}
           </span>
@@ -47,8 +47,8 @@ export function EconomicBadge() {
 
       {oficial && (
         <div className="flex items-center gap-1.5">
-          <span className="text-[9px] text-white/25 uppercase tracking-wider">Oficial</span>
-          <span className="text-[13px] font-headline font-semibold text-white/50 tabular-nums">
+          <span className="text-[9px] text-fg/25 uppercase tracking-wider">Oficial</span>
+          <span className="text-[13px] font-headline font-semibold text-fg/50 tabular-nums">
             ${oficial.venta.toLocaleString('es-AR')}
           </span>
         </div>
@@ -56,7 +56,7 @@ export function EconomicBadge() {
 
       {lastInflation && (
         <div className="flex items-center gap-1">
-          <span className="text-[9px] text-white/25 uppercase tracking-wider">IPC</span>
+          <span className="text-[9px] text-fg/25 uppercase tracking-wider">IPC</span>
           <span className={`text-[12px] font-medium tabular-nums flex items-center gap-0.5 ${
             lastInflation.valor > 5 ? 'text-red-400/70' : 'text-emerald-400/70'
           }`}>

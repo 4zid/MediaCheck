@@ -28,6 +28,12 @@ yarn-error.log*
 # local env files
 .env*.local
 
+# claude code local settings (may contain approved command patterns with secrets)
+.claude/settings.local.json
+
+# temp files from verify-trending skill
+tmp-verify-trending-*
+
 # vercel
 .vercel
 

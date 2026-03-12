@@ -15,14 +15,17 @@ const config: Config = {
         body: ['"DM Sans"', 'system-ui', 'sans-serif'],
       },
       colors: {
+        fg: {
+          DEFAULT: 'rgb(var(--foreground) / <alpha-value>)',
+        },
         surface: {
-          DEFAULT: '#06060a',
-          raised: '#0d0d14',
-          overlay: '#14141f',
+          DEFAULT: 'rgb(var(--background) / <alpha-value>)',
+          raised: 'rgb(var(--card) / <alpha-value>)',
+          overlay: 'rgb(var(--muted) / <alpha-value>)',
         },
         wire: {
-          border: 'rgba(255,255,255,0.06)',
-          muted: '#5a5a72',
+          border: 'var(--border-color)',
+          muted: 'rgb(var(--muted-foreground))',
         },
         accent: {
           DEFAULT: '#8b5cf6',

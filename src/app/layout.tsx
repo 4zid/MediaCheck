@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Manrope, DM_Sans } from 'next/font/google';
 import './globals.css';
 import { SupabaseProvider } from '@/providers/SupabaseProvider';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 
 const manrope = Manrope({
   subsets: ['latin'],
@@ -28,10 +29,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" className="dark" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: `(function(){try{var t=localStorage.getItem('theme');var d=t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme:dark)').matches);document.documentElement.classList.toggle('dark',d)}catch(e){}})()` }} />
+      </head>
       <body className={`${manrope.variable} ${dmSans.variable} font-body antialiased`}>
         <SupabaseProvider>
           {children}
         </SupabaseProvider>
+        <SpeedInsights />
       </body>
     </html>
   );

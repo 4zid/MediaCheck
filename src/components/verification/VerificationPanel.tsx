@@ -36,14 +36,14 @@ export function VerificationPanel({ title, source, link }: VerificationPanelProp
         <span className="text-[10px] font-bold tracking-[0.15em] text-wire-muted uppercase">
           {source}
         </span>
-        <h2 className="font-headline text-xl leading-snug text-white">
+        <h2 className="font-headline text-xl leading-snug text-fg">
           {title}
         </h2>
         <a
           href={link}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 text-[11px] text-wire-muted hover:text-white/70 transition-colors"
+          className="inline-flex items-center gap-1.5 text-[11px] text-wire-muted hover:text-fg/70 transition-colors"
         >
           <ExternalLink size={11} />
           <span className="tracking-wider uppercase">Ver noticia original</span>
@@ -91,7 +91,7 @@ export function VerificationPanel({ title, source, link }: VerificationPanelProp
           {/* Re-verify button */}
           <button
             onClick={handleReverify}
-            className="flex items-center gap-2 text-[11px] tracking-wider text-wire-muted hover:text-white uppercase transition-colors"
+            className="flex items-center gap-2 text-[11px] tracking-wider text-wire-muted hover:text-fg uppercase transition-colors"
           >
             <RotateCw size={12} />
             Re-verificar
@@ -139,7 +139,7 @@ export function VerificationPanel({ title, source, link }: VerificationPanelProp
           <p className="text-sm text-red-400">{error}</p>
           <button
             onClick={handleReverify}
-            className="flex items-center gap-2 text-[11px] tracking-wider text-wire-muted hover:text-white uppercase transition-colors"
+            className="flex items-center gap-2 text-[11px] tracking-wider text-wire-muted hover:text-fg uppercase transition-colors"
           >
             <RotateCw size={12} />
             Reintentar

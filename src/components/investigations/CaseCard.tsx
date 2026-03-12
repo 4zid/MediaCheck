@@ -27,7 +27,7 @@ const VERDICT_STYLES: Record<string, { label: string; color: string; barColor: s
   partially_true: { label: 'Parcial', color: 'text-amber-400', barColor: '#f59e0b', barLight: '#fbbf24' },
   false: { label: 'Falso', color: 'text-red-400', barColor: '#ef4444', barLight: '#f87171' },
   misleading: { label: 'Engañoso', color: 'text-orange-400', barColor: '#f97316', barLight: '#fb923c' },
-  unverified: { label: 'Sin verificar', color: 'text-white/40', barColor: '#52525b', barLight: '#71717a' },
+  unverified: { label: 'Sin verificar', color: 'text-fg/40', barColor: '#52525b', barLight: '#71717a' },
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -77,7 +77,7 @@ export function CaseCard({ investigation, onRecheck, onSelect }: CaseCardProps) 
           {CATEGORY_LABELS[investigation.category] || 'General'}
         </span>
         {isResolved ? (
-          <span className="flex items-center gap-1 text-[10px] text-white/30 tracking-wider uppercase">
+          <span className="flex items-center gap-1 text-[10px] text-fg/30 tracking-wider uppercase">
             <CheckCircle size={10} />
             Resuelto
           </span>
@@ -90,7 +90,7 @@ export function CaseCard({ investigation, onRecheck, onSelect }: CaseCardProps) 
       </div>
 
       {/* Title */}
-      <h3 className="font-headline text-[15px] font-semibold leading-snug text-white/90 line-clamp-2 mb-2 group-hover:text-white transition-colors">
+      <h3 className="font-headline text-[15px] font-semibold leading-snug text-fg/90 line-clamp-2 mb-2 group-hover:text-fg transition-colors">
         {investigation.title}
       </h3>
 
@@ -100,7 +100,7 @@ export function CaseCard({ investigation, onRecheck, onSelect }: CaseCardProps) 
           {verdict.label}
         </span>
         {investigation.confidence > 0 && (
-          <span className="text-[11px] text-white/25 tabular-nums">
+          <span className="text-[11px] text-fg/25 tabular-nums">
             {investigation.confidence}%
           </span>
         )}
@@ -121,12 +121,12 @@ export function CaseCard({ investigation, onRecheck, onSelect }: CaseCardProps) 
       {/* Footer: meta + action */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <span className="flex items-center gap-1 text-[11px] text-white/25">
+          <span className="flex items-center gap-1 text-[11px] text-fg/25">
             <Layers size={11} />
             {investigation.source_count}
           </span>
           {lastChecked && (
-            <span className="flex items-center gap-1 text-[11px] text-white/20">
+            <span className="flex items-center gap-1 text-[11px] text-fg/20">
               <Clock size={10} />
               {lastChecked}
             </span>
@@ -142,7 +142,7 @@ export function CaseCard({ investigation, onRecheck, onSelect }: CaseCardProps) 
             disabled={investigation.manual_recheck_used}
             className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all duration-200 ${
               investigation.manual_recheck_used
-                ? 'text-white/15 cursor-not-allowed'
+                ? 'text-fg/15 cursor-not-allowed'
                 : 'text-accent/70 hover:text-accent hover:bg-accent/10 active:scale-95'
             }`}
           >

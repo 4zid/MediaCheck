@@ -22,6 +22,18 @@ const BLACKLIST_KEYWORDS = [
   // Policiales comunes
   'choque fatal', 'accidente de tránsito', 'accidente de transito',
   'entradera', 'motochorro',
+  // Mascotas/animales/naturaleza
+  'mascota', 'perro', 'gato', 'cachorro', 'gatito', 'veterinaria', 'zoo',
+  'dinosaurio', 'fósil', 'fosil', 'piedra', 'mineral', 'aurora boreal',
+  'asteroide', 'curiosidad', 'dato curioso', 'sabías que', 'sabias que',
+  'flora y fauna', 'piedritas', 'acuario', 'serpiente', 'insecto',
+  // Tech/gadgets
+  'iphone', 'samsung', 'playstation', 'xbox', 'nintendo', 'videojuego',
+  'gaming', 'gadget', 'smartphone', 'apple watch', 'pixel',
+  // Internacional irrelevante
+  'rey carlos', 'familia real', 'taylor swift', 'super bowl', 'oscar',
+  'grammy', 'hollywood', 'k-pop', 'kpop', 'anime', 'manga',
+  'kardashian', 'beyoncé', 'beyonce',
   // Otros irrelevantes
   'viral', 'tendencia tiktok', 'meme', 'challenge',
   'black friday', 'hot sale', 'cyber monday', 'receta de cocina',

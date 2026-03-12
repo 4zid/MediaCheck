@@ -43,7 +43,7 @@ export function SlideOverPanel({ isOpen, onClose, children }: SlideOverPanelProp
         {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 z-10 p-2 rounded-full bg-surface-overlay hover:bg-wire-border transition-colors text-wire-muted hover:text-white"
+          className="absolute top-4 right-4 z-10 p-2 rounded-full bg-surface-overlay hover:bg-wire-border transition-colors text-wire-muted hover:text-fg"
           aria-label="Cerrar panel"
         >
           <X size={16} />

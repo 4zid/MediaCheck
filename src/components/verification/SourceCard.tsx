@@ -17,10 +17,10 @@ export function SourceCard({ url, title, snippet, credibility_score, supports_cl
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
-          <span className="text-[10px] font-medium tracking-[0.12em] text-white/25 uppercase">
+          <span className="text-[10px] font-medium tracking-[0.12em] text-fg/25 uppercase">
             {source_name}
           </span>
-          <h4 className="text-sm text-white/80 leading-snug mt-0.5 line-clamp-2">
+          <h4 className="text-sm text-fg/80 leading-snug mt-0.5 line-clamp-2">
             {title}
           </h4>
         </div>
@@ -37,7 +37,7 @@ export function SourceCard({ url, title, snippet, credibility_score, supports_cl
 
       {/* Snippet */}
       {snippet && (
-        <p className="text-xs text-white/30 leading-relaxed line-clamp-3">
+        <p className="text-xs text-fg/30 leading-relaxed line-clamp-3">
           {snippet}
         </p>
       )}
@@ -46,8 +46,8 @@ export function SourceCard({ url, title, snippet, credibility_score, supports_cl
       <div className="flex items-center justify-between">
         {/* Credibility bar */}
         <div className="flex items-center gap-2">
-          <span className="text-[9px] tracking-wider text-white/15 uppercase">Credibilidad</span>
-          <div className="w-16 h-[3px] bg-white/[0.04] rounded-full overflow-hidden">
+          <span className="text-[9px] tracking-wider text-fg/15 uppercase">Credibilidad</span>
+          <div className="w-16 h-[3px] bg-fg/[0.04] rounded-full overflow-hidden">
             <div
               className={`h-full rounded-full ${
                 credibility_score >= 80 ? 'bg-emerald-500' :
@@ -56,14 +56,14 @@ export function SourceCard({ url, title, snippet, credibility_score, supports_cl
               style={{ width: `${credibility_score}%` }}
             />
           </div>
-          <span className="text-[10px] text-white/20 tabular-nums">{credibility_score}</span>
+          <span className="text-[10px] text-fg/20 tabular-nums">{credibility_score}</span>
         </div>
 
         <a
           href={url}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-white/15 hover:text-accent/60 transition-colors"
+          className="text-fg/15 hover:text-accent/60 transition-colors"
         >
           <ExternalLink size={12} />
         </a>

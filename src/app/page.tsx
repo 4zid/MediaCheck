@@ -179,8 +179,8 @@ export default function HomePage() {
         {activeInvestigations.length === 0 && (
           <section className="pt-8 pb-6">
             <div className="glass p-8 text-center">
-              <Search size={20} className="mx-auto mb-3 text-white/10" />
-              <p className="text-sm text-white/25">
+              <Search size={20} className="mx-auto mb-3 text-fg/10" />
+              <p className="text-sm text-fg/25">
                 No hay investigaciones activas. Se crearán automáticamente al detectar noticias relevantes.
               </p>
             </div>
@@ -188,12 +188,12 @@ export default function HomePage() {
         )}
 
         {/* Divider */}
-        <div className="h-px bg-white/[0.04] my-2" />
+        <div className="h-px bg-fg/[0.04] my-2" />
 
         {/* News Feed */}
         <section className="pb-12">
           <div className="flex items-center gap-2.5 px-0 py-5">
-            <Radio size={12} className="text-white/20" />
+            <Radio size={12} className="text-fg/20" />
             <span className="section-label">Feed en vivo</span>
           </div>
 
@@ -211,7 +211,7 @@ export default function HomePage() {
               Array.from({ length: 8 }).map((_, i) => <WireItemSkeleton key={i} />)
             ) : items.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 text-center">
-                <p className="text-sm text-white/20">No hay noticias disponibles</p>
+                <p className="text-sm text-fg/20">No hay noticias disponibles</p>
               </div>
             ) : (
               items.map((item, i) => (
@@ -237,7 +237,7 @@ export default function HomePage() {
                 <button
                   onClick={() => fetchPage(offset, true, activeSource)}
                   disabled={loadingMore}
-                  className="px-5 py-2 rounded-xl glass glass-hover text-[11px] tracking-wider font-medium text-white/30 hover:text-white/60 uppercase transition-all disabled:opacity-50"
+                  className="px-5 py-2 rounded-xl glass glass-hover text-[11px] tracking-wider font-medium text-fg/30 hover:text-fg/60 uppercase transition-all disabled:opacity-50"
                 >
                   {loadingMore ? (
                     <span className="flex items-center gap-2">
@@ -251,7 +251,7 @@ export default function HomePage() {
             )}
 
             {!loading && !hasMore && items.length > 0 && (
-              <p className="text-center py-8 text-[10px] tracking-[0.2em] text-white/10 uppercase">
+              <p className="text-center py-8 text-[10px] tracking-[0.2em] text-fg/10 uppercase">
                 Fin del feed
               </p>
             )}

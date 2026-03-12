@@ -34,7 +34,7 @@ export default function CategoryPage() {
 
         <main className="flex-1 min-h-screen border-x border-gray-200 dark:border-gray-800 min-w-0">
           {/* Feed header */}
-          <div className="sticky top-0 z-10 bg-white/85 dark:bg-black/85 backdrop-blur-xl border-b border-gray-200 dark:border-gray-800">
+          <div className="sticky top-0 z-10 bg-fg/85 dark:bg-black/85 backdrop-blur-xl border-b border-gray-200 dark:border-gray-800">
             <div className="px-4 py-3 flex items-center gap-3">
               <Link href="/" className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors">
                 <ArrowLeft size={20} />

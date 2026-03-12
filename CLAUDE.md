@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Dev server**: `npm run dev` (port 3000)
 - **Build**: `npm run build`
 - **Lint**: `npm run lint`
-- **Deploy**: `npx vercel --prod`
+- **Deploy**: `npx vercel --prod` (force-deploy: `npx vercel --prod --force`)
 
 No test framework is configured.
 
@@ -27,6 +27,25 @@ The core is a 7-step SSE streaming pipeline that progressively filters claims to
 6. **Supabase persist** — stores claim, verification, and sources.
 7. **Stream complete** — sends final SSE event with `claimId`.
 
+### Investigation System
+
+The app operates as a real-time investigation dashboard. A Vercel cron (`/api/cron/investigate`, daily at 8am) runs `manageCases()` to maintain up to 3 active AI-curated investigation cases, then re-checks each via Sonnet analysis.
+
+- `GET /api/investigations` — returns active + recent resolved cases. Auto-calls `manageCases()` if no active cases exist.
+- `POST /api/investigations/[id]/recheck` — manual re-investigation (one-time per case)
+- `GET /api/cron/investigate` — cron endpoint (protected by `CRON_SECRET`)
+
+**Case Manager flow** (`src/lib/argentina/case-manager.ts`):
+1. Auto-purges legacy irrelevant cases (blacklisted keywords in title)
+2. Archives stale cases (24h+ no update, or 72h+ old with <30% confidence)
+3. Fetches Argentine news feeds + Google Trends in parallel
+4. Filters articles through blacklist/whitelist scoring (`src/lib/argentina/filter.ts`, threshold ≥20 points)
+5. Clusters articles by keyword overlap, boosts clusters matching Google Trends
+6. Asks Haiku per cluster: OPEN_CASE or REJECT. Haiku must create "Caso: [investigative framing]" titles — never copy headlines
+7. Creates investigation with sources; adds economic context for economy cases
+
+**Critical**: API routes that query Supabase MUST export `fetchCache = 'force-no-store'` — Next.js 14 caches `fetch()` calls by default, causing stale Supabase data even with `force-dynamic`.
+
 ### Contextual API Router (`src/lib/contextual/index.ts`)
 
 `resolveContextualAPIs(category, urgency, claim)` selects 0-3 specialized APIs based on bilingual (ES+EN) keyword matching against the claim text plus Haiku's classification. Generic claims (politics, economy) skip contextual APIs entirely.
@@ -42,17 +61,12 @@ The core is a 7-step SSE streaming pipeline that progressively filters claims to
 | `src/lib/wikipedia.ts` | Spanish Wikipedia search. |
 | `src/lib/claimbuster.ts` | ClaimBuster API for verifiability scoring. |
 | `src/hooks/useVerification.ts` | Client-side SSE stream consumer with step tracking. |
-| `src/lib/investigations.ts` | Investigation case logic: `detectAndCreateCases()`, `recheckInvestigation()`, `getActiveInvestigations()`. |
-| `src/lib/argentina/economic.ts` | DolarAPI + ArgentinaDatos: dollar rates (blue, oficial, MEP, CCL) and inflation data. No API keys. |
+| `src/lib/investigations.ts` | `recheckInvestigation()`, `getActiveInvestigations()`, `seedInvestigations()`. Note: `detectAndCreateCases()` was removed — `manageCases()` in case-manager.ts replaced it. |
+| `src/lib/argentina/case-manager.ts` | `manageCases()` — maintains up to 3 active investigations via Haiku decisions. |
+| `src/lib/argentina/filter.ts` | `scoreArticle()` / `filterArticles()` — blacklist/whitelist scoring for Argentine news relevance. |
+| `src/lib/argentina/trends.ts` | `fetchGoogleTrendsAR()` — free Google Trends RSS for Argentina (no API key). |
 | `src/lib/argentina/feeds.ts` | Argentine RSS (Infobae, Clarin, La Nacion, P12, Ambito, Chequeado) + GDELT AR + GNews AR + NewsAPI AR. Auto-categorizes into politics/economy/justice/social. |
-
-### Investigation System
-
-The app operates as a real-time investigation dashboard. A Vercel cron (`/api/cron/investigate`, every 5 min) detects trending news, creates investigation cases (max 3 active), and periodically re-checks them accumulating sources over time.
-
-- `GET /api/investigations` — returns active + recent resolved cases
-- `POST /api/investigations/[id]/recheck` — manual re-investigation (one-time per case)
-- `GET /api/cron/investigate` — cron endpoint (protected by `CRON_SECRET`)
+| `src/lib/argentina/economic.ts` | DolarAPI + ArgentinaDatos: dollar rates (blue, oficial, MEP, CCL) and inflation data. No API keys. |
 
 ### Database Schema (Supabase)
 
@@ -63,9 +77,15 @@ The app operates as a real-time investigation dashboard. A Vercel cron (`/api/cr
 - `investigation_sources` (url, title, snippet, content, credibility_score, supports_claim, source_type, published_at) — UNIQUE(investigation_id, url)
 - `investigation_checks` (verdict, confidence, summary, analysis, sources_added, ai_model)
 
-### UI
+### UI & Theme System
 
-Custom components (no shadcn/MUI). Dark-mode-first with glassmorphism. Manrope for headlines, DM Sans for body. Accent color: violet (#8b5cf6). All UI strings are in Spanish.
+Custom components (no shadcn/MUI). Glassmorphism design with dark/light mode support. Manrope for headlines, DM Sans for body. Accent color: violet (#8b5cf6). All UI strings are in Spanish.
+
+**Theme architecture**: `useTheme` hook toggles `.dark` class on `<html>`. An inline `<script>` in layout.tsx prevents flash by reading localStorage before hydration. CSS custom properties in `globals.css` define both light and dark values (`--background`, `--foreground`, `--glass-bg`, `--border-color`, etc.).
+
+**Color tokens in Tailwind**: Use `text-fg/[opacity]`, `bg-fg/[opacity]`, `border-fg/[opacity]` for theme-aware foreground colors (white in dark, dark in light). `surface` and `wire` colors also adapt via CSS variables. **Never use hardcoded `text-white/` or `bg-white/`** — always use `fg` instead.
+
+Glass component classes (`.glass`, `.glass-hover`, `.glass-accent`) are defined in `globals.css` using CSS custom properties that auto-switch with theme.
 
 ## Path Alias
 
@@ -83,4 +103,6 @@ Optional (graceful degradation if missing): `NEWS_API_KEY`, `GOOGLE_FACT_CHECK_A
 - `rss-parser` is configured as a server-side external package in `next.config.mjs`.
 - Verdicts: `verified`, `partially_true`, `false`, `unverified`, `misleading`.
 - Categories: `politics`, `health`, `technology`, `economy`, `environment`, `social`, `science`, `entertainment`, `other`.
-- Function max duration is 60 seconds (set in verify-stream route).
+- Function max duration is 60 seconds (set in verify-stream and cron routes).
+- Investigation case titles MUST start with "Caso:" and be AI-generated investigative framings, never copied headlines.
+- API routes querying Supabase must export both `dynamic = 'force-dynamic'` and `fetchCache = 'force-no-store'`.

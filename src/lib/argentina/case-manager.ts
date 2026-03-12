@@ -8,6 +8,7 @@ import { fetchArgentinaFeed } from './feeds';
 import { filterArticles, type ScoredArticle } from './filter';
 import { getCredibilityScore, getSourceName } from '../sources';
 import { getEconomicSnapshot } from './economic';
+import { fetchGoogleTrendsAR } from './trends';
 
 function getSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -34,6 +35,7 @@ interface ActiveCase {
 async function askHaikuCaseDecision(
   articles: ScoredArticle[],
   activeCases: ActiveCase[],
+  trendingTopics: string[] = [],
 ): Promise<{
   decision: 'OPEN_CASE' | 'REJECT';
   title?: string;
@@ -54,19 +56,31 @@ async function askHaikuCaseDecision(
     ? activeCases.map(c => `- ${c.title} (${c.category})`).join('\n')
     : 'Ninguno';
 
+  const trendsList = trendingTopics.length > 0
+    ? `\nTENDENCIAS ACTUALES EN ARGENTINA (Google Trends):\n${trendingTopics.slice(0, 10).map(t => `- ${t}`).join('\n')}\n`
+    : '';
+
   const today = new Date().toISOString().slice(0, 10);
 
   try {
     const message = await client.messages.create({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 300,
+      max_tokens: 400,
       messages: [{
         role: 'user',
-        content: `Fecha: ${today}. Sos editor de un medio de verificación argentino. Decidí si estos artículos merecen abrir un caso de investigación.
+        content: `Fecha: ${today}. Sos editor jefe de un medio de verificación argentino. Decidí si estos artículos merecen abrir un CASO DE INVESTIGACIÓN PROPIO.
 
-CRITERIOS PARA ABRIR: impacto real en argentinos (política, economía, justicia, social), afirmaciones contradictorias, tema en desarrollo activo, actores de poder involucrados.
-CRITERIOS PARA RECHAZAR: farándula, deportes, clickbait, noticia rutinaria sin novedad, ya resuelto, sensacionalismo.
+IMPORTANTE — NO copies titulares de medios. Creá un título investigativo propio con formato "Caso: [encuadre investigativo]".
+Ejemplo MALO: "Milei firmó nuevo DNU sobre tarifas"
+Ejemplo BUENO: "Caso: Impacto del nuevo DNU tarifario — Análisis de alcance y efectos en hogares argentinos"
 
+REGLAS ESTRICTAS:
+- Solo hechos verificables, NO conjeturas ni especulaciones
+- Solo temas con impacto real en argentinos (política, economía, justicia, social)
+- RECHAZAR: farándula, deportes, clickbait, noticias rutinarias, mascotas, animales, curiosidades, tech/gadgets, noticias internacionales sin impacto directo en Argentina, fórmula 1, recetas, clima
+- El título DEBE empezar con "Caso:" y ser un encuadre investigativo original
+- El summary debe explicar QUÉ se investiga y POR QUÉ importa, sin especular
+${trendsList}
 ARTÍCULOS:
 ${articleList}
 
@@ -74,7 +88,7 @@ CASOS ACTIVOS (no duplicar):
 ${caseList}
 
 Respondé SOLO JSON:
-{"decision":"OPEN_CASE"|"REJECT","title":"título si OPEN_CASE","summary":"2 oraciones si OPEN_CASE","category":"politics|economy|justice|social","confidence":0-100}`,
+{"decision":"OPEN_CASE"|"REJECT","title":"Caso: [encuadre investigativo]","summary":"2 oraciones: qué investigamos y por qué importa a los argentinos","category":"politics|economy|justice|social","confidence":0-100}`,
       }],
     });
 
@@ -159,6 +173,30 @@ function applyDiversityBonus(
 }
 
 /**
+ * Boost clusters that match Google Trends topics.
+ */
+function boostByTrends(clusters: ScoredArticle[][], trendingKeywords: string[]): ScoredArticle[][] {
+  if (trendingKeywords.length === 0) return clusters;
+
+  const trendWords = trendingKeywords
+    .flatMap(t => t.toLowerCase().split(/\s+/))
+    .filter(w => w.length > 3);
+
+  return [...clusters].sort((a, b) => {
+    const textA = a.map(art => art.title).join(' ').toLowerCase();
+    const textB = b.map(art => art.title).join(' ').toLowerCase();
+
+    const matchesA = trendWords.filter(w => textA.includes(w)).length;
+    const matchesB = trendWords.filter(w => textB.includes(w)).length;
+
+    // Trend-matching clusters get priority, then by size
+    const scoreA = a.length + matchesA * 3;
+    const scoreB = b.length + matchesB * 3;
+    return scoreB - scoreA;
+  });
+}
+
+/**
  * Determine if a case should be archived.
  */
 function shouldArchive(c: ActiveCase): boolean {
@@ -195,8 +233,28 @@ export async function manageCases(): Promise<void> {
 
   const activeCases: ActiveCase[] = activeCasesRaw || [];
 
-  // 2. Archive stale cases
-  const toArchive = activeCases.filter(shouldArchive);
+  // 2. Auto-purge irrelevant cases (legacy cases without "Caso:" prefix or with blacklisted content)
+  const PURGE_KEYWORDS = ['gato', 'piedritas', 'mascota', 'perro', 'fórmula 1', 'formula 1',
+    'gran hermano', 'tinelli', 'iphone', 'samsung', 'taylor swift', 'oscar',
+    'cachorro', 'veterinaria', 'gaming', 'playstation', 'xbox', 'nintendo'];
+  for (const c of activeCases) {
+    const titleLower = c.title.toLowerCase();
+    const isIrrelevant = PURGE_KEYWORDS.some(kw => titleLower.includes(kw));
+    if (isIrrelevant) {
+      await supabase.from('investigations').update({
+        status: 'dismissed',
+        updated_at: new Date().toISOString(),
+      }).eq('id', c.id);
+    }
+  }
+
+  const afterPurge = activeCases.filter(c => {
+    const titleLower = c.title.toLowerCase();
+    return !PURGE_KEYWORDS.some(kw => titleLower.includes(kw));
+  });
+
+  // 3. Archive stale cases
+  const toArchive = afterPurge.filter(shouldArchive);
   for (const c of toArchive) {
     await supabase.from('investigations').update({
       status: 'resolved',
@@ -204,13 +262,19 @@ export async function manageCases(): Promise<void> {
     }).eq('id', c.id);
   }
 
-  const remaining = activeCases.filter(c => !toArchive.includes(c));
+  const remaining = afterPurge.filter(c => !toArchive.includes(c));
   const slotsAvailable = 3 - remaining.length;
 
   if (slotsAvailable <= 0) return;
 
-  // 3. Fetch and filter Argentine news
-  const rawFeed = await fetchArgentinaFeed(40).catch(() => []);
+  // 3. Fetch Argentine news + Google Trends in parallel
+  const [rawFeed, trendingTopics] = await Promise.all([
+    fetchArgentinaFeed(40).catch(() => []),
+    fetchGoogleTrendsAR().catch(() => []),
+  ]);
+
+  const trendingKeywords = trendingTopics.map(t => t.title);
+
   const articles = rawFeed.map(item => ({
     title: item.title,
     content: item.content || '',
@@ -225,25 +289,24 @@ export async function manageCases(): Promise<void> {
   // 4. Cluster articles by topic
   const clusters = clusterArticles(filtered);
 
-  // 5. Apply diversity bonus
-  const ranked = applyDiversityBonus(clusters, remaining);
+  // 5. Boost clusters that match Google Trends topics
+  const boostedClusters = boostByTrends(clusters, trendingKeywords);
 
-  // 6. Filter out duplicates of existing cases
+  // 6. Apply diversity bonus
+  const ranked = applyDiversityBonus(boostedClusters, remaining);
+
+  // 7. Filter out duplicates of existing cases
   const candidates = ranked.filter(cluster => !isDuplicateOfActive(cluster, remaining));
 
-  // 7. For each candidate, ask Haiku if it deserves a case
+  // 8. For each candidate, ask Haiku if it deserves a case
   let created = 0;
   for (const cluster of candidates) {
     if (created >= slotsAvailable) break;
 
-    // Only consider clusters with 2+ articles from 2+ sources
-    const uniqueSources = new Set(cluster.map(a => a.source));
-    if (cluster.length < 2 && uniqueSources.size < 2) {
-      // For seed cases (when no cases exist), allow single-article clusters
-      if (remaining.length + created > 0) continue;
-    }
+    // Require 2+ articles, unless seeding (0 existing cases) — Haiku still reviews all
+    if (cluster.length < 2 && remaining.length + created > 0) continue;
 
-    const decision = await askHaikuCaseDecision(cluster, [...remaining]);
+    const decision = await askHaikuCaseDecision(cluster, [...remaining], trendingKeywords);
     if (!decision || decision.decision !== 'OPEN_CASE') continue;
 
     // Get economic context if economy-related
@@ -254,8 +317,8 @@ export async function manageCases(): Promise<void> {
 
     // Create the case
     const { data: inv } = await supabase.from('investigations').insert({
-      title: (decision.title || cluster[0].title).substring(0, 200),
-      summary: (decision.summary || cluster[0].content).substring(0, 500) || null,
+      title: (decision.title || 'Caso: Investigación en desarrollo').substring(0, 200),
+      summary: (decision.summary || `Investigación activa basada en ${cluster.length} fuentes`).substring(0, 500) || null,
       status: 'active',
       category: decision.category || cluster[0].category,
       confidence: decision.confidence || 0,
@@ -293,7 +356,7 @@ export async function manageCases(): Promise<void> {
 
     remaining.push({
       id: inv.id,
-      title: decision.title || cluster[0].title,
+      title: decision.title || 'Caso: Investigación en desarrollo',
       category: decision.category || cluster[0].category,
       status: 'active',
       verdict: null,
@@ -306,49 +369,5 @@ export async function manageCases(): Promise<void> {
     created++;
   }
 
-  // 8. Fallback: if we still don't have 3 cases, create from top filtered articles
-  const finalSlots = 3 - remaining.length;
-  if (finalSlots > 0 && filtered.length > 0) {
-    const usedUrls = new Set(remaining.map(c => c.title.toLowerCase()));
-
-    for (const article of filtered) {
-      if (remaining.length >= 3) break;
-      if (usedUrls.has(article.title.toLowerCase())) continue;
-
-      const { data: inv } = await supabase.from('investigations').insert({
-        title: article.title.substring(0, 200),
-        summary: article.content.substring(0, 500) || null,
-        status: 'active',
-        category: article.category,
-        source_count: 1,
-        confidence: 0,
-      }).select().single();
-
-      if (inv) {
-        await supabase.from('investigation_sources').insert({
-          investigation_id: inv.id,
-          url: article.url,
-          title: article.title,
-          snippet: article.content.substring(0, 300) || null,
-          credibility_score: getCredibilityScore(article.url),
-          source_name: article.source || getSourceName(article.url),
-          source_type: 'rss',
-          published_at: article.pubDate || null,
-        });
-
-        remaining.push({
-          id: inv.id,
-          title: article.title,
-          category: article.category,
-          status: 'active',
-          verdict: null,
-          confidence: 0,
-          source_count: 1,
-          last_checked_at: null,
-          created_at: new Date().toISOString(),
-        });
-        usedUrls.add(article.title.toLowerCase());
-      }
-    }
-  }
+  // No fallback — better 1-2 quality AI-curated cases than 3 raw headlines
 }

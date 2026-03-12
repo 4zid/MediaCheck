@@ -44,9 +44,9 @@ export function VerificationStepComponent({ step, label, status, delay = 0 }: Ve
       {/* Label */}
       <span className={`text-sm leading-snug ${
         status === 'complete'
-          ? 'text-white/70'
+          ? 'text-fg/70'
           : status === 'active'
-          ? 'text-white'
+          ? 'text-fg'
           : 'text-wire-muted/40'
       }`}>
         {label}

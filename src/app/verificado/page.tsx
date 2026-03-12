@@ -48,7 +48,7 @@ export default function VerificadoPage() {
           Array.from({ length: 8 }).map((_, i) => <ArchiveSkeleton key={i} />)
         ) : claims.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 text-center px-6">
-            <h2 className="font-headline text-xl text-white/80 mb-2">
+            <h2 className="font-headline text-xl text-fg/80 mb-2">
               Sin verificaciones aún
             </h2>
             <p className="text-sm text-wire-muted">
@@ -85,7 +85,7 @@ export default function VerificadoPage() {
                     {claim.verification.confidence}%
                   </span>
                 </div>
-                <h3 className="font-headline text-lg leading-snug text-white/90 group-hover:text-white transition-colors">
+                <h3 className="font-headline text-lg leading-snug text-fg/90 group-hover:text-fg transition-colors">
                   {claim.content}
                 </h3>
                 <p className="mt-1.5 text-xs text-wire-muted line-clamp-1">

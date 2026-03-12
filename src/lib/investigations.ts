@@ -137,96 +137,6 @@ export async function seedInvestigations(): Promise<void> {
 }
 
 /**
- * Detect trending topics and create investigation cases (max 3 active).
- */
-export async function detectAndCreateCases(): Promise<void> {
-  const supabase = getSupabase();
-  if (!supabase) return;
-
-  // Get active investigations
-  const { data: active } = await supabase
-    .from('investigations')
-    .select('id, title, status, created_at, last_checked_at, verdict')
-    .eq('status', 'active')
-    .order('created_at', { ascending: false });
-
-  const activeInvestigations = active || [];
-
-  // Auto-resolve old cases with a verdict and >24h without new sources
-  for (const inv of activeInvestigations) {
-    if (inv.verdict && inv.last_checked_at) {
-      const hoursSinceCheck = (Date.now() - new Date(inv.last_checked_at).getTime()) / (1000 * 60 * 60);
-      if (hoursSinceCheck > 24) {
-        await supabase.from('investigations').update({ status: 'resolved', updated_at: new Date().toISOString() }).eq('id', inv.id);
-      }
-    }
-  }
-
-  // Re-count active after resolving
-  const { data: stillActive } = await supabase
-    .from('investigations')
-    .select('id, title')
-    .eq('status', 'active');
-
-  const currentActive = stillActive || [];
-  if (currentActive.length >= 3) return;
-
-  // Fetch trending news from Argentina + international
-  const [arNews, intlNews] = await Promise.all([
-    fetchArgentinaFeed(15).catch(() => []),
-    searchSources('noticias importantes hoy').catch(() => []),
-  ]);
-
-  const allCandidates = [
-    ...arNews.map(n => ({ title: n.title, content: n.content || '', url: n.link, source: n.source, pubDate: n.pubDate })),
-    ...intlNews.map(s => ({ title: s.title, content: s.content, url: s.url, source: 'Internacional', pubDate: s.date || new Date().toISOString() })),
-  ];
-
-  if (allCandidates.length === 0) return;
-
-  const slotsAvailable = 3 - currentActive.length;
-  const existingTitles = currentActive.map(i => i.title.toLowerCase());
-
-  let created = 0;
-  for (const item of allCandidates) {
-    if (created >= slotsAvailable) break;
-
-    // Skip if too similar to existing case
-    const titleLower = item.title.toLowerCase();
-    const isDuplicate = existingTitles.some(t =>
-      titleLower.includes(t.substring(0, 20)) || t.includes(titleLower.substring(0, 20))
-    );
-    if (isDuplicate) continue;
-
-    const category = categorizeArticle(item.title, item.content);
-
-    const { data: inv } = await supabase.from('investigations').insert({
-      title: item.title.substring(0, 200),
-      summary: item.content.substring(0, 500) || null,
-      status: 'active',
-      category,
-      source_count: 1,
-    }).select().single();
-
-    if (inv) {
-      await supabase.from('investigation_sources').insert({
-        investigation_id: inv.id,
-        url: item.url,
-        title: item.title,
-        snippet: item.content.substring(0, 300) || null,
-        credibility_score: getCredibilityScore(item.url),
-        source_name: item.source || getSourceName(item.url),
-        source_type: 'rss',
-        published_at: item.pubDate || null,
-      });
-
-      existingTitles.push(titleLower);
-      created++;
-    }
-  }
-}
-
-/**
  * Re-investigate a case: search for new sources, run analysis, update verdict.
  */
 export async function recheckInvestigation(investigationId: string): Promise<void> {
@@ -342,13 +252,9 @@ export async function getActiveInvestigations(): Promise<(Investigation & { sour
     .limit(1);
 
   if (!anyActive || anyActive.length === 0) {
-    // Use Argentina case manager to create/maintain 3 active cases
+    // Use Argentina case manager to create/maintain active cases
     await manageCases().catch(err => {
-      console.error('Case manager failed, falling back to seed:', err);
-      // Fallback to basic seeding if case manager fails
-      return seedInvestigations().catch(seedErr => {
-        console.error('Seed investigations also failed:', seedErr);
-      });
+      console.error('Case manager failed:', err);
     });
   }
 
