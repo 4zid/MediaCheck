@@ -133,7 +133,7 @@ main();
 
 4. **Generate case title**: Ask Haiku: "Generá un título investigativo para este caso. Formato exacto: 'Caso: [encuadre investigativo]'. NO copies el titular original. Sé breve. Claim: {claim}". Ensure result starts with "Caso:".
 
-5. **Store in Supabase**: Create a Supabase client with `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`.
+5. **Store in Supabase**: Create a Supabase client with `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SECRET_KEY`.
 
    **IMPORTANT**: Supabase JS client returns `{ data, error }` — it does NOT throw on insert errors. Use `try/catch` around source inserts for safety, NOT `.catch()` chaining.
 

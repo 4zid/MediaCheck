@@ -93,7 +93,7 @@ Glass component classes (`.glass`, `.glass-hover`, `.glass-accent`) are defined 
 
 ## Environment Variables
 
-Required: `ANTHROPIC_API_KEY`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`.
+Required: `ANTHROPIC_API_KEY`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (browser-safe), `SUPABASE_SECRET_KEY` (server-only, never expose to client).
 Optional (graceful degradation if missing): `NEWS_API_KEY`, `GOOGLE_FACT_CHECK_API_KEY`, `CLAIMBUSTER_API_KEY`, `GNEWS_API_KEY`, `TWITTER_BEARER_TOKEN`, `CRON_SECRET`.
 
 ## Conventions
